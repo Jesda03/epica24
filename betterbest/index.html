@@ -1,0 +1,1068 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BetterBest</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap">
+<style>
+/* Una pantalla a la vez: esta regla hace valer el atributo hidden por encima
+   del display:flex de las tarjetas. Sin ella, las seis pantallas se apilan. */
+[hidden]{display:none!important}
+
+/* Diseño: una sola columna centrada (máx. 560 px), pensada primero para celular.
+   Fondo de cuadrícula tipo cuaderno; cada familia de operaciones tiene su propio color. */
+:root{
+  --bg:#EDF1F5; --sup:#FFFFFF; --tinta:#17212B; --suave:#56687A; --linea:#D2DCE6;
+  --corto:#0E6F8A; --escr:#9A4E12; --largo:#1A6B2E; --avanz:#A32355;
+  --ok:#15804A; --mal:#BD2638;
+  --cuadro:rgba(23,33,43,.06); --sombra:rgba(23,33,43,.10);
+  --acento:var(--corto);
+  --r:14px;
+  --display:"Fredoka",ui-rounded,system-ui,sans-serif;
+  --texto:"Nunito",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#111A20; --sup:#1A252C; --tinta:#E8F0F4; --suave:#93A7B3; --linea:#2B3A44;
+    --corto:#4FC3E8; --escr:#F0A36B; --largo:#5FD07A; --avanz:#F57BA5;
+    --ok:#45CE8C; --mal:#FF8793;
+    --cuadro:rgba(232,240,244,.05); --sombra:rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111A20; --sup:#1A252C; --tinta:#E8F0F4; --suave:#93A7B3; --linea:#2B3A44;
+  --corto:#4FC3E8; --escr:#F0A36B; --largo:#5FD07A; --avanz:#F57BA5;
+  --ok:#45CE8C; --mal:#FF8793;
+  --cuadro:rgba(232,240,244,.05); --sombra:rgba(0,0,0,.35);
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--tinta);
+  font-family:var(--texto); font-size:16px; line-height:1.5;
+  background-image:linear-gradient(var(--cuadro) 1px,transparent 1px),linear-gradient(90deg,var(--cuadro) 1px,transparent 1px);
+  background-size:26px 26px;
+}
+.envoltura{max-width:560px; margin:0 auto; padding-inline:16px; padding-block:18px 36px; display:flex; flex-direction:column; gap:16px}
+h1,h2,h3{font-family:var(--display); font-weight:600; margin:0; text-wrap:balance; line-height:1.2}
+h1{font-size:1.9rem; letter-spacing:-.01em}
+h2{font-size:1.25rem}
+h3{font-size:1rem}
+p{margin:0}
+.silencio{color:var(--suave); font-size:.9rem}
+.tarjeta{background:var(--sup); border:1px solid var(--linea); border-radius:var(--r); padding:18px; display:flex; flex-direction:column; gap:14px}
+.volver-sitio{font-family:var(--texto); font-weight:600; font-size:.88rem; color:var(--suave);
+  text-decoration:none; align-self:flex-start; margin-bottom:-8px}
+.volver-sitio:hover{color:var(--tinta)}
+.marca{display:flex; align-items:baseline; gap:11px; flex-wrap:wrap}
+.marca img{width:48px; height:48px; border-radius:11px; background:#fff; padding:2px; flex:0 0 auto; align-self:center}
+.marca span{font-family:var(--display); font-size:.78rem; letter-spacing:.12em; text-transform:uppercase; color:var(--suave)}
+
+/* --- botones --- */
+button{font-family:var(--texto); font-size:1rem; cursor:pointer; border-radius:12px; border:1px solid transparent; padding:12px 16px; transition:transform .12s ease, filter .12s ease}
+button:active{transform:translateY(1px)}
+button:focus-visible{outline:3px solid var(--acento); outline-offset:2px}
+.b-principal{background:var(--acento); color:#fff; font-weight:700; border:none}
+:root[data-theme="dark"] .b-principal{color:#0E1519}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .b-principal{color:#0E1519} }
+.b-suave{background:transparent; color:var(--tinta); border:1px solid var(--linea); font-weight:600}
+.b-suave:hover{border-color:var(--acento); color:var(--acento)}
+.fila{display:flex; gap:10px; flex-wrap:wrap}
+.fila>button{flex:1 1 auto; min-width:0}
+
+/* --- barra superior del juego --- */
+.hud{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:space-between}
+.chip{font-family:var(--display); font-size:.82rem; padding:5px 11px; border-radius:999px; background:color-mix(in srgb,var(--acento) 14%,transparent); color:var(--acento); border:1px solid color-mix(in srgb,var(--acento) 35%,transparent); white-space:nowrap}
+.dato{font-variant-numeric:tabular-nums; font-family:var(--display); font-size:.95rem; color:var(--suave)}
+.dato b{color:var(--tinta); font-size:1.15rem}
+.barra{height:8px; border-radius:99px; background:var(--linea); overflow:hidden}
+.barra i{display:block; height:100%; width:0; background:var(--acento); border-radius:99px; transition:width .35s ease}
+
+/* --- operación --- */
+.operacion{font-family:var(--display); font-weight:600; font-variant-numeric:tabular-nums; text-align:center; font-size:clamp(2.4rem,13vw,3.4rem); line-height:1.1; padding:10px 0; letter-spacing:.02em}
+.contexto{background:color-mix(in srgb,var(--acento) 9%,transparent); border-left:4px solid var(--acento); border-radius:0 10px 10px 0; padding:12px 14px; font-size:.97rem}
+.fichas{display:flex; flex-wrap:wrap; gap:14px; justify-content:center; padding-bottom:4px}
+.grupo{display:flex; flex-wrap:wrap; gap:5px; max-width:48%; justify-content:center}
+.ficha{width:17px; height:17px; border-radius:50%; background:var(--acento)}
+.grupo.b .ficha{background:color-mix(in srgb,var(--acento) 45%,var(--linea))}
+
+/* --- respuestas --- */
+.opciones{display:grid; grid-template-columns:repeat(2,1fr); gap:10px}
+.opciones button{font-family:var(--display); font-size:1.5rem; font-variant-numeric:tabular-nums; background:var(--sup); border:2px solid var(--linea); color:var(--tinta); padding:16px 8px}
+.opciones button:hover:not(:disabled){border-color:var(--acento)}
+.opciones button:disabled{cursor:default; opacity:.55}
+.opciones button.buena::after{content:" ✓"; font-weight:700}
+.opciones button.mala::after{content:" ✗"; font-weight:700}
+.opciones button.buena{border-color:var(--ok); background:color-mix(in srgb,var(--ok) 16%,var(--sup)); color:var(--ok); opacity:1}
+.opciones button.mala{border-color:var(--mal); background:color-mix(in srgb,var(--mal) 14%,var(--sup)); color:var(--mal); opacity:1}
+.casillas{display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
+.casilla{display:flex; flex-direction:column; align-items:center; gap:5px; min-width:0}
+.casilla label{font-size:.78rem; letter-spacing:.1em; text-transform:uppercase; color:var(--suave); font-family:var(--display)}
+.casilla input{width:120px; max-width:38vw; text-align:center; font-family:var(--display); font-size:2rem; font-variant-numeric:tabular-nums; padding:8px 6px; border-radius:12px; border:2px solid var(--linea); background:var(--bg); color:var(--tinta)}
+.casilla input:focus{outline:none; border-color:var(--acento)}
+.casilla input.activa{border-color:var(--acento)}
+.teclado{display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
+.teclado button{font-family:var(--display); font-size:1.35rem; background:var(--sup); border:1px solid var(--linea); color:var(--tinta); padding:14px 0}
+.teclado button:hover{border-color:var(--acento)}
+.teclado .ancho{grid-column:span 2}
+
+/* --- retroalimentación --- */
+.aviso{border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:9px; animation:entra .25s ease}
+.aviso.bien{background:color-mix(in srgb,var(--ok) 13%,transparent); border:1px solid color-mix(in srgb,var(--ok) 40%,transparent)}
+.aviso.mal{background:color-mix(in srgb,var(--mal) 12%,transparent); border:1px solid color-mix(in srgb,var(--mal) 38%,transparent)}
+.aviso h3{font-size:1.05rem}
+.aviso.bien h3{color:var(--ok)} .aviso.mal h3{color:var(--mal)}
+.pasos{margin:0; padding-left:20px; display:flex; flex-direction:column; gap:5px; font-size:.95rem}
+.pasos li::marker{color:var(--acento); font-weight:700}
+@keyframes entra{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+
+/* --- mapa de niveles --- */
+.niveles{display:flex; flex-direction:column; gap:8px}
+.nivel{display:flex; align-items:center; gap:12px; text-align:left; width:100%; background:var(--sup); border:1px solid var(--linea); border-radius:12px; padding:11px 14px; color:var(--tinta)}
+.nivel:disabled{opacity:.45; cursor:default}
+.nivel .num{flex:0 0 34px; height:34px; display:grid; place-items:center; border-radius:10px; font-family:var(--display); font-weight:600; background:color-mix(in srgb,var(--c) 15%,transparent); color:var(--c); border:1px solid color-mix(in srgb,var(--c) 35%,transparent)}
+.nivel .txt{flex:1 1 auto; min-width:0}
+.nivel .txt b{display:block; font-family:var(--display); font-weight:600; font-size:.98rem}
+.nivel .txt span{font-size:.84rem; color:var(--suave)}
+.nivel .est{flex:0 0 auto; font-size:.78rem; font-family:var(--display); color:var(--suave)}
+.nivel.hecho .est{color:var(--ok)}
+
+/* --- tabla de puntuaciones --- */
+table{width:100%; border-collapse:collapse; font-size:.88rem; font-variant-numeric:tabular-nums}
+th,td{text-align:left; padding:7px 6px; border-bottom:1px solid var(--linea)}
+th{font-family:var(--display); font-weight:600; font-size:.74rem; letter-spacing:.08em; text-transform:uppercase; color:var(--suave)}
+td.n{text-align:right}
+.scroll{overflow-x:auto}
+textarea{width:100%; box-sizing:border-box; min-height:110px; font-family:ui-monospace,monospace; font-size:.8rem; border-radius:10px; border:1px solid var(--linea); background:var(--bg); color:var(--tinta); padding:10px; resize:vertical}
+input[type=text]{font-family:var(--texto); font-size:1rem; padding:11px 13px; border-radius:11px; border:1px solid var(--linea); background:var(--bg); color:var(--tinta); width:100%; box-sizing:border-box}
+input[type=text]:focus{outline:none; border-color:var(--acento)}
+label.campo{display:flex; flex-direction:column; gap:5px; font-size:.84rem; color:var(--suave); font-weight:600}
+.pie{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; font-size:.82rem; color:var(--suave)}
+.puntazo{font-family:var(--display); font-size:3rem; font-variant-numeric:tabular-nums; line-height:1; color:var(--acento)}
+
+/* --- créditos al pie --- */
+.creditos{display:flex; align-items:center; gap:12px; flex-wrap:nowrap;
+  padding-top:14px; margin-top:2px; border-top:1px solid var(--linea); text-align:left}
+.creditos img{width:54px; height:auto; flex:0 0 auto; background:#fff; border-radius:7px; padding:3px}
+.creditos .texto{flex:1 1 0; min-width:0}
+.creditos .cole{font-family:var(--display); font-weight:600; font-size:.92rem; color:var(--tinta); display:block; line-height:1.25}
+.creditos .evento{font-size:.78rem; color:var(--suave); display:block; line-height:1.4}
+.creditos .autor{font-size:.78rem; color:var(--suave); display:block; line-height:1.4}
+.creditos .autor b{color:var(--tinta); font-weight:700}
+</style>
+<style>
+/* Ajustes propios de BetterBest */
+.palabra{text-align:center; font-family:var(--display); font-weight:600;
+  font-size:clamp(1.7rem,8vw,2.3rem); line-height:1.15}
+.palabra small{display:block; font-family:var(--texto); font-weight:400;
+  font-size:.86rem; color:var(--suave); margin-top:2px}
+.frase{text-align:center; font-size:clamp(1.02rem,4.6vw,1.26rem); line-height:1.5; padding:4px 0}
+.frase .hueco{display:inline-block; min-width:74px; border-bottom:3px solid var(--acento); margin:0 3px}
+.frase small{display:block; font-family:var(--texto); font-size:.84rem; color:var(--suave); margin-top:4px}
+.etiq{font-family:var(--display); font-size:.74rem; letter-spacing:.11em; text-transform:uppercase;
+  color:var(--suave); text-align:center; display:block; margin-bottom:2px}
+.reglas{max-height:300px; overflow:auto; border:1px solid var(--linea); border-radius:10px; padding:11px}
+.reglas table{width:100%; border-collapse:collapse; font-size:.8rem}
+.reglas th, .reglas td{padding:3px 5px; border-bottom:1px solid var(--linea); text-align:left}
+.reglas th{color:var(--acento); font-family:var(--display); font-size:.68rem;
+  text-transform:uppercase; letter-spacing:.05em}
+.reglas caption{font-family:var(--display); font-weight:600; text-align:left;
+  padding:7px 0 4px; color:var(--tinta); font-size:.9rem}
+.opciones button{text-align:center}
+/* El botón de enviar dentro del teclado conserva el color de acento */
+.teclado button.b-principal{background:var(--acento); border-color:transparent; color:#fff}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .teclado button.b-principal{color:#0E1519} }
+:root[data-theme="dark"] .teclado button.b-principal{color:#0E1519}
+</style>
+</head>
+<body>
+<div class="envoltura">
+
+  <a id="b-volver-sitio" class="volver-sitio" href="#" hidden>‹ Volver a ÉPICA24</a>
+
+  <div class="marca">
+    <img src="data:image/jpeg;base64,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xNR7O3pZAsPTW6v66nFnwRqN5+61XxPqF3a5+aFf3YcehINWLzwLbef5+j311pEpUK32VsI+OBlfX3rrKKX1irff8vy2H9Xp9v69TkLXwJG13Hc6zql3qzRNuSO4b92D67e9E3gKCKZ5NI1S/wBMDnJjgkyg+gPSuvope3qXvf8Ar02H7Gna1v69TkIPAFnJMJdXv73VWGcLcyHYP+A+tR/8IE6/uIvEGqJZdBbiXovpmuzoo9tU7j9lDsZ66LYpon9kJDttBH5YUHkD1z655z61h/8ACOa9B8lt4jmEQ+6JE3ED65rrKK5KtCFV80t/Vr8jqpYidJcsbW80n+Zyf/COa9N8tx4ln2dxGm0/zrQtPCml21lNbvEZzP8A62WU5dj2Oe34VuUVMcJSi72v66/mXLF1pK17eiS/I5X/AIRjU7TKabr9xFD2SUb9v0pR4PN3l9W1O6vJQPkO7aIz6getdTRU/UqPbTtd2+7Yr67X7697K/32ucp/Yvia0/d2evCSIdPPjywH15pyeEpr7e+ualLeSFSI1X5ViP8AeA9a6mihYOl1u12bbX3A8bV6WT7pJP77HINaeLbICCN7LUIF4RrgYbHv/k1oaRpuqNeC/wBZuI2lRSkMEAxHED1Pue1b9FOGGjF3u35NinipSjblS80tf69AooorpOUKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//9k=" alt="" width="200" height="200">
+    <h1>BetterBest</h1>
+    <span>Comparativos y superlativos</span>
+  </div>
+
+  <section id="p-inicio" class="tarjeta">
+    <h2>¿Quién va a jugar?</h2>
+    <p class="silencio">Escribe tu nombre, o un apodo si prefieres, y tu grado. El juego guarda tu avance en este dispositivo, así que puedes seguir después donde ibas.</p>
+    <label class="campo">Nombre o apodo<input type="text" id="in-nombre" autocomplete="off" placeholder="Ej.: Daniela"></label>
+    <label class="campo">Grado o grupo<input type="text" id="in-grado" autocomplete="off" placeholder="Ej.: 8-01"></label>
+    <p id="aviso-inicio" class="silencio" hidden style="color:var(--mal)">Escribe tu nombre y tu grado para empezar.</p>
+    <button class="b-principal" id="b-entrar">Empezar a jugar</button>
+    <div class="pie">
+      <button class="b-suave" id="b-ver-docente">Panel del docente</button>
+      <button class="b-suave" id="b-sonido">Sonido: activado</button>
+    </div>
+  </section>
+
+  <section id="p-mapa" class="tarjeta" hidden>
+    <div class="hud">
+      <h2 id="saludo">Hola</h2>
+      <div class="dato">Puntaje <b id="m-puntaje">0</b></div>
+    </div>
+    <p class="silencio" id="m-regla"></p>
+    <div class="niveles" id="lista-niveles"></div>
+    <div class="pie">
+      <button class="b-suave" id="b-salir">Cambiar de jugador</button>
+      <button class="b-suave" id="b-repaso" hidden>Repaso mezclado</button>
+      <button class="b-suave" id="b-docente2">Panel del docente</button>
+    </div>
+  </section>
+
+  <section id="p-explica" class="tarjeta" hidden>
+    <span class="chip" id="e-chip">Nivel 1</span>
+    <h2 id="e-titulo"></h2>
+    <div id="e-concepto"></div>
+    <div class="aviso bien" style="background:color-mix(in srgb,var(--acento) 10%,transparent); border-color:color-mix(in srgb,var(--acento) 35%,transparent)">
+      <h3 style="color:var(--acento)">Ejemplo resuelto</h3>
+      <div id="e-ejemplo"></div>
+    </div>
+    <div class="fila">
+      <button class="b-suave" id="b-volver-mapa">Volver</button>
+      <button class="b-principal" id="b-jugar">¡Vamos!</button>
+    </div>
+  </section>
+
+  <section id="p-juego" class="tarjeta" hidden>
+    <div class="hud">
+      <span class="chip" id="j-chip">Nivel 1</span>
+      <div class="dato">Pregunta <b id="j-num">1</b>/<span id="j-total">5</span></div>
+      <div class="dato">Puntos <b id="j-puntos">0</b></div>
+      <div class="dato" id="j-racha" hidden>Racha <b>0</b></div>
+    </div>
+    <div class="barra"><i id="j-barra"></i></div>
+
+    <div id="j-muestra" hidden></div>
+    <div class="operacion" id="j-operacion" style="font-size:clamp(1.02rem,4.6vw,1.3rem); line-height:1.4"></div>
+
+    <div id="j-opciones" class="opciones" hidden></div>
+
+    <div id="j-escribir" hidden>
+      <div class="casillas" id="j-casillas"></div>
+      <div class="teclado" id="j-teclado" style="margin-top:12px; grid-template-columns:1fr"></div>
+    </div>
+
+    <button class="b-suave" id="b-ayuda" hidden>Ver las reglas</button>
+    <div id="j-tabla" class="reglas" hidden></div>
+
+    <div id="j-aviso"></div>
+    <button class="b-principal" id="b-seguir" hidden>Continuar</button>
+    <div class="pie"><button class="b-suave" id="b-abandonar">Salir del nivel</button></div>
+  </section>
+
+  <section id="p-fin" class="tarjeta" hidden>
+    <h2 id="f-titulo"></h2>
+    <div class="puntazo" id="f-aciertos"></div>
+    <p id="f-texto"></p>
+    <div class="scroll"><table>
+      <tbody>
+        <tr><th>Aciertos a la primera</th><td class="n" id="f-ok"></td></tr>
+        <tr><th>Errores</th><td class="n" id="f-err"></td></tr>
+        <tr><th>Puntos del nivel</th><td class="n" id="f-pts"></td></tr>
+        <tr><th>Tiempo</th><td class="n" id="f-tiempo"></td></tr>
+      </tbody>
+    </table></div>
+    <div class="fila">
+      <button class="b-suave" id="b-repetir">Repetir nivel</button>
+      <button class="b-principal" id="b-continuar">Continuar</button>
+    </div>
+  </section>
+
+  <section id="p-docente" class="tarjeta" hidden>
+    <h2>Panel del docente</h2>
+    <p class="silencio">Resultados guardados en este dispositivo. Para pasarlos a otro lado, copia el resumen o la planilla y pégalos en WhatsApp, en un correo o en una hoja de cálculo.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Jugador</th><th>Grado</th><th class="n">Nivel</th><th class="n">Puntos</th><th class="n">Aciertos</th></tr></thead>
+        <tbody id="d-tabla"></tbody>
+      </table>
+    </div>
+    <div class="fila">
+      <button class="b-suave" id="b-copiar-resumen">Copiar resumen</button>
+      <button class="b-suave" id="b-copiar-csv">Copiar planilla (CSV)</button>
+      <button class="b-suave" id="b-bajar-csv">Descargar CSV</button>
+    </div>
+    <textarea id="d-texto" readonly hidden aria-label="Resultados para copiar"></textarea>
+    <p id="d-aviso" class="silencio" hidden></p>
+    <div class="pie">
+      <button class="b-suave" id="b-reiniciar" style="color:var(--mal); border-color:color-mix(in srgb,var(--mal) 40%,transparent)">Borrar todos los resultados</button>
+      <button class="b-suave" id="b-cerrar-docente">Volver</button>
+    </div>
+    <div id="d-confirma" class="aviso mal" hidden>
+      <h3>¿Seguro que quieres borrar todo?</h3>
+      <p>Se perderán los resultados de todos los jugadores guardados en este dispositivo. Esta acción no se puede deshacer.</p>
+      <div class="fila">
+        <button class="b-suave" id="b-no">No, cancelar</button>
+        <button class="b-suave" id="b-si" style="color:var(--mal); border-color:var(--mal)">Sí, borrar todo</button>
+      </div>
+    </div>
+  </section>
+
+<footer class="creditos">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAACoCAMAAACSclH2AAABgFBMVEX//////v/+//////7+//7//v7+/v79//7///3+/vz8//3+//n+/f39/f79/f39/fv9/P38/fz8/Pz8/Pr6/Pz7+/v7+vr7+/j5+fj49/f77ID96gD52M/62FD73RT60hH73QX71gX60AX84gH73gH72wH52wD71wH51wH50gH5zQHz8/Lv7+7r6unm5eXl4t/b29vm3tLv3Dva1NHPz87NycjFxcTp0Vjy0QzVvVfavSG+wbW6u7O1tLSwsKJ5vCp6tTtwuSxvszNptitntC1lsS9gsS5fry1ary6rq6u4qFyjo6J4p0Zhqj5ho0ZbrC5cqS6umT+Wlo2Vil6Veh9pm0dqjFJ5fXNzb1xVqzBSqjFUrCxTqDNNqTBMpTNFpTJLnT08njY1nDgumTk9kDxCdTFzYClaW1VYTzVPQygwXyEnTxo6PjUZPw83LRsnJBsgIBkfHBcOKAgWHQ8kGxYhGhggGxkfGxkeGhYiGRciFAwbGRMUGA0YEg0REgwRDAnGK1mZAAAveElEQVR42tWdiUPbVtb2L3Gi2AljE7vevmnZ2ixEXhRsq8RLhtJsirEDCiDS0MTtYERsGW+AjeXlX/+ec2WDSUiadzqknTsdEnb9dLbnnHutMPbfXYLgtP7iC0uxWDwhf7AS8VhMEgX+JW6nILC/4xKc/LqEiBRPZTK46rgUDYm+oBhwu72BQCAoiiI+l5DT+KwUFfk3Of92FPzuBiKJTEZRZCkcCvKPMvowPufE3Xc7J6zLDoYjsbSCL7Ng3MLfiAJvvGE5k83KsYjX+pjb63M7LRp+653syi38ecVpfZ6FpISSzchRn/UD+H/CX+tRRCHJipJKhC0En5u5vbgorzMSjwpMSsuy6HJEQ65oLCJ6mI2xKTfHCUgy2KM8YGCzv5KEfnNQSmez6TC/tW7uKEEQhbNqgsX1FMtuZzK6zEJGgmmapmtaXArj88Ik/+ZAOKVk5QjZzD3lFP4qCvzicCarxLkpnG7+URFYqpZgqiFeYVpEMiTGZIllqirLBFQ9qsnGdlzNBt0+5oXhJhiLpLLZBOJlyvuXgAi4bl8ct5MovF4ncwrhWEZTA5oRCWWrUkIXHQ5VyuqugD/oEVVVD9xiqsaCLkNhuu4MaKrIfM4pwnfDqJnIyFG/uk9F0mqaO7ibIjjknJAMLZENygburq5FjKjDkY2pusvncMDJVCMuCJom2MR9WcjqE0E9w9Qs8wrCLdwFJiaySgy5zv01KSgdBWJIoCEWCVKEBgVZk1iAbWtMEiNGTHCresiIM6bG5SosJoqaEtZVxrZVJkj7EosbUxmVSVWNDd3JN4XQz2TxE9lXczBKLsGEkiFjRPWw0y1FmTuiS8zHMoaqS4IhC0zVBV0LSFrUvq3HJfhViILGYwBG3hdZWJfVcFiFp8GZQtlsBHluEjYGiviVrCIgL4lyNg2PdnqdmQzCXauqXpbNMC9utByTfLrCInrGFte3t9MsEFBUNatkJU9WS8m6Kvo0g026NSQyVVN1L646q6e3Q8wT9JKDpjiK97JTMf34gKymKX96cTMTWU1hkm7sSzEVIGEjxtSUritaxuZiwVjI5nEMv9PlsDFXSIyGQll4IdN0pmgR1QhCpUQjohF12pnf43JYKHCwS03FgnuCrJEiR3aSByQ0SYa3qFHtQNUgBoOGrupyKhEPsRGATwyFwpFwKCSKgdGPCTqFhJQwUixqhJkPdtjWfTYxq3lsdpvXTRk9EbhMEorqhELplgqzKMtu1DuWrobhVimjhvssqYpV3plfDEVJPCp8ZbHwR4bkYlj08nsSlqLOTDUjTLGIBs+Kq4bGXDbkrYCPhTKKdGmKEl7ljmczIavyhSPZVko0Ek6/30gnNHBpaeYeqsJIIgXdpaQh26VIWBS9qCRiKCxJ8TgJMkgsiYtKiEzZG1K3ZdtNTYvqceZhshp3ImuwiILfdClxgmuU6Ifz2icq2nZQ1wQjy4J2PSMZqYCNBb1cr0ALKpmUFAq6RnfAYXe5zn6QNxiOk6USEolfwRsm2RLNaroesvkF+UBVw6hMTIgrCQG/Vfive5WYUaJWbAhhVQ5lQ2lD0BCsYT0qKVF+qSGJ/EfiGt5mdzhcpAQn3R6XyzVpyXm3+xb/eVfCUgpfi1jCCqtZPwsYSOAepm2zlBZyktWD6WyUkuR/0cME3OtEFjZ3wxzhOFNVdtXpCxmyDwlKTdn8dOGiDFPESGewKZ/Pewt61jZBa3LS4bxx/TpjExNs4trkpCA4XHau5GMQ8jGeAhyebDVu8whhqkFalsXd5F9RRfaxgPO/1kri50SUdIg3FW4fqreecUMkIYUGgxSV4BDjmWw6TkAO/N6Ja8J1XPoVYdJazls3btyAbSaHH3DAWC6emIP0fVG73RGUFNnhRR11BknHqAgYiLmADKM4ff+lBCYwn5yVLGEiRVhME8EiOsOJbDVjfUUUko90ks0x6bo2MfatExMX/kQblt026eaCMQy1HKdwCbpdcpXKKhK6vq2qXmdwEkZJB5nvv1Ee6eqzsLAXpg5puohCnJFbkFFpLSEF/VT2FF7BHH4/3elJXDts4Mbyen1jC107LZQVFJZwOBQWYTt8nY0FoplsClnb50vpihjUqmLaYEFNnJjyBdgk3UTnn7YJzCvynI7uIahqihF3CpLGUP+yapR3H3I2IwEWvhJE4jm/9veNT6wD/A9OQ02hw4M8EZYtGR9UVIgX976OHsctBAIkJiOKHEDMC38yWcWzCZ5DWGY7qwThVEFBlZiclZ3eAOSEwtXKPwS73cPUQd9avd7wzy6t3uhd61OmaeJj5kBj1mACVvR4KVoouXtYWPIGVSOMgA84xWxccIuCV8Zn/sSMghwT5gjxdkfS0C8xd6IqwejScH6Q4WqF3ysCiR6Yx/W2ebaaze6Fq1k/blWla9etgEGedjjd/2BumfoCLBnqPhiC16H/QmQG3CymRP5EnUdwS1kkD5+btIfGtreFANOMrKYyX0BkItepNqdzGL/XUAQGtWa1XBmt8idWyWjWBts211jow6hTkGqpbCLIgs64piJbBTgRrgJtW1iJM5vwH0e5rITB4WM+1ZCiQtyQnAFR0zN2+G5Qpgif8LpPw3BiiqXMend/azNPK5f/eBX4ym/tN+utFJv6wPwTzknSixLyVkjTgtwLVFxFTMQ9EpWU4z+r8uh3lJSbxAL6hrSRYUGqun4qFR6KnAx3KudZYpyYZKLR7ZY38zmsnY/WW77evXtX2Ko0e3qQiv25NcGo7HORNUEy3qvBMqCpZhwOv52llSDz/idRLmVjvItCH6eKiiH6XbGaGvIE/A78MiVifdHYLGoCJlEHzUY+9/r16ze0fhlbv1oLHO/eFhtNU2H+Gx/cOWFScCJJCXEYZSowhSTIdEXWDC1IjYqdxfDx/2vIC5Zbeb1uX0JD0x0IoEjZY5ocdMCr0koMX5NROMY5kITZbhRzFgat16d//XW03r3Nl7tdI3T9mxvXr5wb9LmZ1xpshxVFxD2Us4K+n00ZUZuH+YMC3b/Y/zHkEXaZtFUDZT26vQ3dk65mguEgC7hwY1JB6m9NJDDvOZBJm2j0uqX86+fPX74ExNki64xAduBZyL3fnAdBRKD5dcLcJIRiiG0aWWwrTNfYTVxFjAEnSCTC/yU8wtkEbzYlTckwqYrfIBqaaHP4qeWJ2Jg7awxaff2b8yATyFv9Zjn/nED4m5enJOReOwTzLg/PaqOXvzUO4nSK+qCmhZh/ksaVFPToHUURWTLEIlndCIdEXFcQtflLSSbQ/UGWI8q91PClPUGmGj4WkR030XPElTiyZkI/6dVqx/0s850TDx6WMSlIXj4jDgIZrtdvXhMIkbzLl7p9Q7z+za1xg3gntMFxe7AvM4dvyu3kzU8MaVdE36PoqrqNrjpM0h6m+sI4QX+WRhF0T+GGqFnmEh0e0dAj+GY/cmAGdTyk1gYnnW6t1aol0J8I498ba9UbhdwzWs+fPbfWOMgvAKmgqgvkWWeKEgKud9I2a/2aKqLVddLtETMy8/rhVXoshQiNHGQptwQziS+ziRvOA4mIHxXWZLmqG4ZiCyBt4T7YYuRwtozRb9W6lS29UTWNsNN3TRj3SaOLaAfGUyyOc+phOwCBSX4pNMzBB6b0IgR7vWq1Wzsho7jpk0j7ckZEq5OmAXicxXVfUIIOpvedf6yGnbyGUrwFwijmiqpA94jUqDFnGnmMSdu9fqvVLG1ubpW61cG2y+Nx2M+ShFsfNIsrT631zGJBvFgoRPLrTrFhVuOw5BmIm8Wr3WZD26o0Oof9Fu6a1ys4nQEhxpsd0l6iM61L2r7EAm4hBdQ/AqEOKkqi2UndqpYmv9eizO4P4BNooUW12j856Za38riinUqj1tNsfpd97Cfog25pBQYZM8owTIgErpUrNvpG2OZxnYKAw+jVGltbu7ulSqN+0tMT6EnhE4j5rMyCHqiJWwhUNSuFvGS+zB/ECdlLwl2HOcIoQ9lIRAumVVW2+dF1JKhhT+t9s9at6lv5ws6vv64VKs3WQGVjJnFCbnVLy5Ypno5I4GCnKDu5Urdn+G+eggjE0a91i1u7v/97d7fSaNZgFDRTbhdIxHTa4/KwtJSpZoP4/dsKtKQv89l6QhVJzoYmvOCQFWPbMHQjG9HQSftt6GhF5OJWv9XulrY2C+/gI7/u8ERqIiE4zkC2B83SyhOsp0/5mzOrPLdsApC+bnO5hiC4oPRBtzbQt3b/TWu31GjUWiY6XRciBe2wrIi2AItBPjLFVONZBS2KLyN9Tne5p+S0e8rnFmJGiimKXVb1/TCDPRA3CV46jlvdg618HorpFwLhJGYrCwlsiVi7za4PzOLKsyePnz7GGqE8fcbrCicByMBwEYjTYXPAg7Nmr9Yvru7+ZoHsFskogxqM4nY6PB4Ux5AraJMzzghNwJ3wdJ8g0tT7054VyTonfVO33Il93SlS0+GPip6gB8UjgqRBXtXUtzbfvbVKNPz9l81So9kyVS/5rM1ud9hCRs/cgms9Hq6RUXgu5sU+V4RrhQTUCqcLpgxrvVZ9UMzv/vb777//21qlRrfWHMAozONy+fmv97tCLKWjYWao/143i2RCn473SW8qjV8Apw2BPbUdF10Ov4d5MoonrLXQajQNeFUBEtai+OX1Wi4PErO/TQkC7ZEfYqtVX12GRc5Ingzd67mVu3LFZruNEPZ6gzbmUoxBu96APX7//QzEMkqvCqNALpJDSEzEz9bQosQPIIxQKWX5086FYJcT9GkvS1WjTM+6Pf6gI6rI+HVIud2DIhoKUq/cHL8QyNoaklCz1TMUcZS0WgerK4/H1pPTULEKysvNCoKED4jDGd006/3qlmWPUxCKlGb30OxDYbn8iPUwNJZfENUYkw620QJDc2QC3s9qRTVKJEg+RirGHJ5bDjkbkfRur9WrFfN5ong3tAg4Xq+9fPlstdjoHnZ6ejYaCka0PtLoKrfHz7TGUQjkOf6XKzVqfQMFSjOOesftrrGV/83iOAPhRjk87FdVCF+7C8okxVwsim/RQ1T2Q0hh7s9q3kxcpLImJAyZHBQ5I4LSUWuhdGzu/oZ2gndHO0OQNy+fP1vLF8gRuoOqoR/0690yDPLz6bJAHlvuRVX+9ZtcvtKtmX2zO+jXzW6luFXYHYGMkyB9NfFlusQolHypDISxKCfcjAbC4XT6Mxt0AZ8iiVI8yOMe8eW3sXQmtT8wq2ZV38wXfgOFBUIWecPV+ctnz19ToHTrtW63C7FUfbW68tPPP59HeXwaJy/Ro+Q2QV43m81mt1Yic/D1AQgWjFKr9Q6yPuaw223pjM9rbfsKLBQXU5+OEYHhk0FRopEh7Uv5YSBZqg5qtaahkVehSR2BgAMgO6/hWs+ev8ktryH7d7vNbqNMHD8RifX21CpPnxAJLPL6+VpuExUcq1xEZX37bgzkPMluudmq9bp6wuVAoMhK0G1J1JAUgTqLf2J/TmDxtIBmSozH+OY/aV1kOqVq1prlLZjjDASNBYHs5HJrVL8RAisra8VSuVwqri6v/Oun0Rq3Co8TqiWIeKSIwm6xWMjzqHv3SZOUyvXjY3PQUqnsEIl1rkKQwj7BHURSdl+gg9GbKyK05aRbjMfdJBxkJAmPnaUOBjVECM9XBR4jPEDevFnL7eZzT0iIIAgeryzz9dPPP/10MQhM8uwp18Jrb97gHuTyOzvI5accH5qEwr0LjCoKmoNmsX6WUWmGFpQibtJi4UzQfdGZryCpRQqPQESmspmo6TbmmQwy+aDHSX4bWuTXIcjLndXNzRXSVLjbVnzTtf/0r399xAIQHiRrlqo/beH5UOXdhSCI9W6zPTjW4B8Om80CgbCDHJQCAhMmAywhUzckfDjCsHyOS65ITGJy1TS3I8yDBpE0XaNCJilYRYRq4Zs3uc1U4tXa8+fPKL1aNWOFX/w4yE9nIE/WcmtrT6yyOByrvLPWGMfvo5xVJvFo8urusEP82CddQb3fV5kUCw3PIAnUx34AggBJodcZHhMLhiWERgtKLiL4cSdiRr/eKFvFcAxkK/1t6lXuCV/DjMs5hib51xgLxcjq5osXALF0sDUhevsJEF7a2wMjM8mo3eEg6LBMpGNIeffoAFhECXxgER4gzpHDwbvCWcOEe6aDiDIHkfQOOcnbcZBXiW+//fbF5srjZ48fn2IQx2idgqz8vLLyZPXRg0fFEYhFAk/9kORUAfeONTTcbgoPThII6oNaS0+ERkcOhUlmCZFxkECGW0kYtQhTIVnTURPJNx0u8i6z1ijl3448CyC/7LwCx7cPXqyunFGMY4zFys8ry2urqW+/fUQWeT4COQ2S8yC/Uyls9/HbmW/yqgAQGg47WHQbPZLEjxUOBZUzSN3TGItAEsx7ZiTBOSGGJTVusdG2NEsMSbjO4vOd15svvuUkjzZXqAR+zHFKsrKysvoCHN8+KuRerr3GfyPf+vWM4xRkt9w12z3Ep29yfPfLHUAeDYd8wpk3IfAzzD15rr/1usfDRnD63FZnPFyQkTUTKrVgWYQPqoYguLxVMsoFHCOSlVW41bcXgXwUJLBHuWG2u6p/MuievHbt3AYg3W/3+NaowMY7LIG/ez4ju+l7nIIwRqKY7WZjd2cE8npn89EQ5NsUqZKLOIjkX/96vPoiMUTezFF1vxjEIiG/Omlnr9h8Ux/u5sIW6cS5jCsIUeUMxMektPM8h/NDDiJR+7VmZXPHinX0FVupEci3iRery58CsaLjHIgVIzQbGgsRvnYLpWb9pKeygGfS6bx1/foHx0Dd6EzG93idLBM9JRGcVOwFNv7peMbpPA/idNu2qcTn3w5B1lYTpyAPYiBZuYBkeXn11BynIM9HILTVUIBQKZwW90KxUa/3t0W/30V72tevX7ny4ZAn6HSfmxhnRhfOI8Z33vMkJSh8ACI4XaH9frNRzFkcz62kdYryaHX5Y3ssr4xjEMiTcyBv3+YLxVJptzDyrd1K9xBdFxrTyUnnjY9AwIBb7B43UgBWGJ4s9tL+3Dl/FBVxLNCHy4ZyQmO0LVwAgaytfnuOJPUKcuucMcgaqXNfhPTLZ49WjOy8zeWL5XKlUSkWhgYpNQ57RpQf3LomXL/+kUVQBdPnRqZuFktZILe4ccb3ObxC5uORN00W/Czbb3ff5znJy9xZsA9RXqyu4upXhmt19dWjxPmv+HZ1CPLGAkEjU94t5IuNBmzyjgzSME+OUwiQWzccdjZx5YLXEKA5FAWncHZCNKCE+J/OQIbb5uyTU1agfwRid3kCOlRXMU8WeYmu4oP7/SC1iqt/8eLFI75SH1CkUi82c0+oKRmBQIhsQciDpMxNAoPUB9qEz4UWm37/lQtn03J6bM4IE6FOOK14oOLoPAuQWOaCV0QQCEwiVZvNcn7nFxQD6o8+QHnw4FXqwQM61IB1DiLxSH1FWnnlCe94rVHdDlJtKY+amC83qNv9bbfR7R1AYpAuuvLJhjxgyXTSVehmnUJE4UfzWSbGD5mIvFnnARK6YNpNIESikklyAEFj9RKN1TmU8IOEGLZWNBodo4ClALFCXQn1JAj2nd382q+/EgGJ6iKB/JYvdU0IdZ9r0jV57ernxtPcIsitqiI7GY9xJoh8kBOWFVWy5ic8mD4B4nGEjG63wn2L4n3tSW4TAf1gxJGOwhzWUZNTmzx49GpzdeXJcET0hBr3tZ3XOxWyBZyqlLdAChQrze5B5Ootx2dBcJXoOLgzpWJiGhRU7xmLpdHKZ5W0GJf5WXdSL85PWITH+8CESbhFaBPn6ZOVM5RUNCg+SKVTD85AHlDV58YYTevgWbnXb3IVIOwUYBI0a/kSuh3qpOhcx62rwjWsiU+DTIQU60VBaYnvPQeVACyQjsnZTDTAiQACPSlc9AIIG18OlxA2eqiKNEAhDurYV1YQ9gleFkMP5AScSj6LkhTKC6QxqcrhgOvZy2drr39FvgJJoUAmKexWijSIadbb3fQVD2OfBxnpDgZlJfhYMBOnc+1BlR8ngW14Fh6a6XOHhbRBs7qZ45Mgq8t9wpMtVGE49UiOhsSQPzYMFeIYbxOptV+l0wSvf8mXtihX7WxVGsVSpUj9ebtdM40wP2Zr/4PNKMQDZVmqhXgnpSQY4kXi27eWTwlhxen8g525RIvK+w5AXlrdOu9xVzZfPBBD4RA/jRWKPQjxgI9xCXY6FsLX5orlSrmYe5kv4eL7lcJqsVEpFSEUm03TbPW3edqll8p8niSVoCjhUe5mATVLW9lW7bPSsPD5fQdrSLHfb5Q4yLMRCF3lyqqKzBvisU4ksEk0/GgchCYtxTIBNIprOWTeTUBAoGztN/pNs41VQ876kmPxtH3uE4YgsElYDbPRgXoOQiXkj04WkG8hSCyLPLNGQYTyEwq5/CAUDFlZK5GIhqOprWXLs9CS/Pz06TICY3N1eRXuVFgtlfNrCIwyuLpd02y3WkdHx/0M89i+6EADioYgoD+8xcOZDk2PulsCEU4F2KeXh/JWZTM3Ank6tMnKakoMxuSYSM4FuyTSmXTiBZ/WUdOFMFp7W2pUSDXmEB35UmnzzVqpWCg3zXod1iCQdj3Fbt24+iUgEcXHnFkL5Nw1cxAp8yVmRa/YKBDI2hnI45/WXvj9YTmRSFhREhLhWf7U2tCzflpZLpSLCIji8rNna5uVSr5YKeysQZM0zJZJGARCu72u61e+6EwcTBLIhoYlzymcB/kCg9hckCldC8SyyNNhuK8+ehQLif50xD/0rmhKRQtsTVFWaDi8urJarmy+fPkyV6pQKdyiXGWaZtsCOT4m4eu4+kUgdNMDWXEIIpwDyUjpP+awO1i4SmcCCOTlSw7C99lWHm++CothMS3HRiZBRecGAWSxBH8qruJNKff6db5c3iwVtw7oTCBx1Ft8ASTMJr/wvIxXEUPK5MevXRRYNJOJfBFI6MA8D8KdC9Vk9UFIjMqxWIzXwxhqoZWzVpCiisur8Kdnm+UKHa2rFDe3qJDX2xQeQ47WsWlE2OTEFx40SUswivMCEFFV/viQBwcxzoMMnYs6kBTUT8iPiIdrvdpcPp0GIUch9TaKT8gkq5tlZN5Kv3lMF3+EdTwCgfT9QovAg1Ipa1710WlrNfHH524s1zoDefZsLOAhVbZQSsTEAxFBb40j0CUurzxe2awUVnKVympuE8oEXlVudE+OjrGOLBCqIu1jsxZjLtsX+lYwm/Vd6EGCHPrjoyo2OwX7MGudgYyMsryKfuTRI/Qlm5u04bP8c7FSKT5ZhjlKqysUJavQI/CqRvPk5OjoQ5C2mWIeaNMvMokz/olIEJjg/CKQeM2qI6/pEMAIhBsF6SmHzmMT7cfKY+Sr5eW1YrnRQH5aXUUpzAOqUNzSqwhykwMcD41yzDlatYHC/F8IcnXqM69m+wKLIP0qZre8ucNBXg4V8JCElArWMroPXjvyCPdNqJAGlyK5VRTyzeJBl/ItGcQCOTo8PEGQHHU6neO++sUgNC/5c6+lZCokyiqBUG/FSYaBMtqTtqTXMqpEGaWjVFxFaMMuhbwVHMAgc5zwGD8+PjnsHB63zM7BxvteX/ti12J/9qU+gm273y3RwJEPTl+OgTw5BUHcFyg1NUorMAlcLQezlFah3PvN+hDkaAgCk3QOe5295Hd7nZ7uoU2Er/JySjqkbG5dBMJt8vNjS+a+LaN0rFTKj5+ulEqrT9ASbxXhVdytUMgtklarTiiEsb64NL3RQT9i+0og6PjbzeYWH5xa50eHuYt3WY+fPgMKVG5pJVdu5JZLxZXnT9Yq+eW1HKpH1zweVgy+juotyMX64Unn/frizPz9mfUOia2vBIIQ6TeNzZ0LQfihAGo6ypW15a1GcQs9BzJYuVLMbfJC3hqC1C2Qdr1+2EFwJKeX7t+/P5M8MHtZCpKv4lpOhMj+Kt/btWYp5wL+5ZOVAirF6hpMQKUP6WoThZzLw7rZMVvjFjmp1+sDBMfiDDDm5+8n33cGGnN9FRA0AobZ3cqPg7wc1hNKxMuFItq+1dxq4cnKJuofpavyFnIVYvyobbatyoHAODlsm/Vmh4KDMDjIIqJ9P2hz2L9KiCjmSXOrYO220zlei4QXFIRDsdHYLHKAt9DsjU1k3mJxv9k8pLrBc5RFQtWj1uwdjDA4yPR6p1eV2FcC2R70jPzoqJMFQijPX+ZylHJ3UTYqlXKlVMyhjUIvBSaI9TpXJEcjeUV/nFBwzCwtjTjmKUg6/eyXNbt/2rPCRr+rcxDrJMcvFsqbNzt5BEdjazXHAfJ4W9ysoCOv9nmQH41qIIGc4M1pcIw4ZuYXFilIrrouHYSElmKaVfKsIQjfql5be/3mda4INYhSjv6XOg+AgGKr1O0P278jy7m4U1EBfL/+3eLSAqeYQe6dJ5OgkvSMsxeQXyKIg59P3rRA3v462nNfozMyxXIeYqqw9uzNqhUlNILrm4hwy6E4CPIuEi5SLjCSSaTd+ftzS/QXi2gdegtt+6WD8H69SVsab9++HZ7moBNPrwulfP5tKZfbaZRzb15S01Eu63ql320dD/UIQI6seD/s9A42FhfX11+8WEc9n0lurL9YT87MkGUQJAPoxkt/eIWHZfvNyqZ1JmV4nINeSbGzC1mb28m9fgqT5F6v5VACt4xms06GODoFOWqZzVobKffhd4sbj8I3b4YfrSeTL2I+FnpI6WuGEvBAd7mESy+GPr3fL+Z/Gx7qIZAdfiS7UGlUNvO5tecFRAmyF7yq2W/XrLpngRyDpV6rdUmPJPf2HthpLnoz/OoVP556M7WeXOJBQu2ucOm5N457OjxMZx2o+zWfz9HZ8nKRSHZe0yR0Nw/Z3jVb9TaXhCMQiEOK8Y3F6elk573LLynZdMj+KOGI0kvgb77qJHklaXfTzCNcNog26BoaP+5kgeR/K9GpDoAgsCuF/E6u0OCj9Wb9yJpWHR2NQFo1klWL0zP3Z5MdIyjKkpSQp+TYRDwWjSkBdQCQpcX3baiUyw4SQTR6A8uzuFHeFoq0t1ygLbRSGVVkN58rWh0552gPy8eQiSrH9PT8/ML0+mDfZ4skEvHolBxn4UQ8HnGpg3WK973eQA84XJf6UBQny5hH5Fm03hUK+d1yQ8dlF395my9XCltb6Ah3ee/URAkcA6G/IekiOKbnsOY5SDAly6mEIxWfiONvil8dbCAHz2z0utXY+EmlSynrWt80hsd039ExUTRPeaj1nXdoYvPoZOFVNJPmDPX6SI4A5Lg7oOC4h3X37vz0BoEkMplM3AWLxOghI7DIHpoSJOD2IHO5ICRPSPhyjgLpkd2tSqVQqGzlAFLKw9G2jG53aAVAUNeEd1ARzQHvORbu3b1z5+7cHAfxxaVoTHbIcUGSIrF0IAsQVPfk+xM07oHLfEyNm2W63arlWYXdcnm3WKJJNGpfIY+/wDalRv/EWkfHw1YW9bze7PPguHNn9t5dWGRmaXoPIIG4Qo9RgkWQvpS4AyAz9ykB93r7gUt99JkDOcs0tnZ/BwjieStf2N3N0w5go1Eqlso8V9WOLI4jUlQ0XDAPh8ExM3f7NvnVXVhkkUCCcUmKJziIJMVkrzJ4n7x/JuWFS/UsCN+t3wHy+26xYeQL5SJZgro/qPZyE2p9xHHUIt9CJ3vcgqxCjN+9fe/2nTtDksX3A93nkxVFkQS4Fj3tRXZlegfIvwuQW4d9+TIfeSgw+disbRX4MbffUMqRekuIkMpWfnNrq9TstuttrtS5S/HGvNls9yg4Zvn137t3h1Dm5maTAPH6omIwnHAChDaC4/6U2UnOACR5cNRXLhPES4M5I/9v6wjlb2gFS/CtAnXlBRRy3P2jo5E5iKJtHrZ7kFWL03T9BHKH1m0CORjobp+czWYlOvAazyrZhD9R6zxEIaFo72mX+CQnp9up97tG4d/DI5SFcgNxb6XcSsM8PB4r4bygj4LDuny+6I/Z2bvfJ6EMp6akSDgU98oJISyGY7I/Xu2so5DMT1NJnLg8EHrdVbdR3B2dl4ZJSgRSpD1ylIwxLUJVnJoO0iOA+OGHcZDbs3cRz30d1SOrKHGyCLJWVolFq70NDrLR6++7L6+OOJlUMxu7Q5Dffv+domS3sFuq9WukcodzaW6POjUdhPEDLv2H2z/Quj1727KMBbIdy0iCS8qkMrE4Pcsumk4ZVNrnCaRniJf3sFYnS7XMyi696NEyScHaI292W1ytt2kWemz5VZ2PchenZ3+4fQryAxmGmwT1sNM0siiHyLsZTVOQfWNSLGv09qbvD9vdyBdvJf4HIFncqcIpyO+75ZJebjTRMB1SeFsj3TofS/eHwQGEU4rzIPV6tVprVWu16nGveswlZa3V21sEyAxADi4RxM3UXq9csF4UwUGK+1Ua5h5ZeWq4xUxOBa+ambau+ocfPgK5N4fC3qOFt4MO3nQGA/w5QOeYHA4gAOKy2y4LBHW9vDt8lcrvu0i5w7Hb0VG9fToG5cFBlYMnK7r87/n64XsrUiyLvMfaG18b1loagUQvD4SeQnNyCoJGpNG1dp3GQY5bVnAAY3YWHLOzs9+PlmWV23egfpOLycUP1jQtKiNcbBnhSwOx0ROOTiq7py8RbDRbrRHIUZ3nqlqtx4Njaek2gcCvxjiGKLPT00hbZ2seH5ihbmtm+t7SzPTcfQLpG76JSdulgNjoUU29Qwtkt1Tp8vMKR6OG3OrI632rcsxBWVE8zA4N8k+sIctskmZYM3izzv9LztBQK5lcmqY39P4MWitUmWtfeG7gP5kxZntHAOGv0u62kW3r9fppOT88OTyErHq4OMsbjrt3LL+aHWKcokyv761vJDfWKSAQGO83pvHO3vr6XjL5fj2Jz20sLu71+tts6trlgaRMEyVwGBy8jz0+Azns8OCYn+M6nUDGzDEGktz7Edf8EEGyvrGIKwfIj3vr362/f7j3kFNsLB6c9FXmvnZZ6dfFonSWhr+mrn2CdNsanVs4Pq7VTB4c94gBKpfH+uwP4/YYwkwn329s4LLhgrjsaQ7Ccd7DLvgTH13vnPRT/JVul9VWiUa/CWHetk5Xne71t08OaWs5uTh3b+HeLI/g2R/uzFp5958fguDGJ5G0gH0Ksrj3ECD4xB63yPrAPIjaLw+ERg8DavhO2kfW4SprEHp02Bl0UDnmFu4tTS8mk8PYXbqIAyDwoSQQNgCyB6vsIUQWOVXygEfK3gsSv/6bNy8PxMOU/vEhQE5OuJ6qHx4i3CExhvsc87OLyY29vVd0yP8FCa0LQP45CwoEO+wHJ0pO03v8zTq+F4bCxx52+Bj78kBsLlvkwMT116kVpxEJQIbBMTO3MDc/s7jxfn9/m55Lqr7aA9zsRSBW9YDFlvgfvAzOzCzN0MJH59HO96oxh+cSQeyTk3q/NjrrBhCQ8N2zxaX5OYtD1/VtVfJE49vVfQr+j13r+9nhume9vUet7/zCvLWW7i89POgMtuFZdvvlgXhYpjeSVMCo1yxZhatYWJibm3n4nh6/qIWYbwJ5wdBBMnsBCS/xd0aLBnYLozW/tLQIYWymaYf6EkEc9BQwdIJcsLdrtc7pDjkuYib5/7TaPj3n2u+Y9DG1tg2Sj03yz5FWsTpGssi9cZDkgdnfF71Tjhs3Lm/bDTVRHdQAQqeNhw35Et/HhEWSDx+oUdEWTTtu3vR7XNHqsb7/fnH6QhCLghY5FtYpCAxy2H1kC7o/epXYfxfEEYFJOEh7QLLKMgaBzCQfZGEMvyMj2fGlLKXpxvH2i8+CzBIIDxJEyQIZZppS1r7omfrHdeHKpYHYLOFYq7fbh73TreUFyzNmHj7QRD9AQpqaVWKK6qMnLT5MXsAx8qvbQw5ulAXysPnF951OJ2UP/IMwLguEt7uuEExyTMExM8M3lOctp4BnPVKY56af0VPWNHVbuuJlYfVRcvpijrvDNXQtLADNk2MNtm96JicukWFUFNO945MOKsfMMGNazj2TfKhFBZfLE9L39e1tTY3c+oefZR+tT3/kV7zdPQO5d8oyP73e6fQMyeGyX6Pn8l0qyDXXte3+YYfmT+MGAcgrI0EP1VQMejjuthZn3/iFjHoexLLHRyAc5e78dPKgc9jL2PxIvBOXDWLj8X5ijQTvn+bN+9Pr+4Y2yRze7X0LRL7q+0aIq4j27z9MvReBzMzdm1583zscaDeDN6mCXDoI4j1ttk4O1meW5u+fkUyjqhtZmk1ZzytWM8wfYHHtxdIpyGm/eyHI/NziHgJED1HCuHH9K4A4aAjR6hw8tHLWCGQP8mRflSOWa+mGFmRXgpqxsfj99x907XcuALm3MEMcPeMBDHLT+TVAkINd9IRL5C1eC+8PXWvjABfPbMyhtfZ140ClR+iqBjrZD4cPdz4AQb7CH3O8ElYTdtLvjqtXLx3EahUjxuCws7dICXgIMpMECNzpluBUW8d6gtnCGR1yCyCzH9jDWiMS3lLenSGOXjNt816zOxxf4bTWMHMxyehWQbJ06lxQ3we6dNXjcLjp4fUs4Hf49wGSnB4R0JshxGgLbggCvQmOTrP76KYfdrhy7WuB8Ffw1czqAFVxeGQMQZI8MKTgVYdtUlDp1eh+e9TQ9/emp4cTxtHIdKh4z0Duzs1M8/joZpF42QT7qsvNUtVWlXvXAtdb9xam17fl8NQ/vL6AGnF4PH5BQkuSnB4Nf2/fHhrjzu1zGHfRHyffdw7bx49s/pvXL1mZXLjHUDWPO3vIXQtWUby3uP4qEXYzllZZ0P+NH0L5YH363uzpxHcMZIxjbmmROLrVR+wb+lcLsK5+ZZvIVZT499RXWWGylFxX0w/SKmKF2R3XHryCyr9391SwD3d5aGeXj76G9phZXD/oVHvEwSm+tkV4nBwgdx2so9GlKIFzJV+9ek8nMQ01EZFfvQIHQGZnb/PRKSFYZhlKK6JBOd/onFQH7yFvPMRx/euD0EMj6AGkEJBLQIEOR0+ycTCg9DM40LbRA9+5i2ufmZm9zS+c9+i08zPSu6Mwrw70Bwz148YNu439FcvNovrgpNNBg8WHB5Cvi+t7B7T2NpJLs0u4WNz/6Ts/gGJudhocHGcEcoe71fFhbztEHDcdfxUI87Gg1juuUaDMz89A9yELLyYfvnjx4+Li4tIMpP4izXr4vAcL70/j/zOgoeqxQG7VOezXVf9N4kBF/6tABL99QjXNQzoXTid/aB4yR5P29e9o0k5zNxq50RiR3rF2pZKzczOQKAv3KOtCJhopxjkcjkmH/S8iERwev0056B2bdPjn3gL5C7w+uUjbBDRz/3Fvg78HmPfJh3tJ0PxIIEhcMAdyRZOegcrNMQS5xCnQ55adnm8n6f3WIR83QosvQI0naQ8EUUIEext8vr5Hg9G95Hf0YYCQB+51zMPBgXoT5nA4bgBj8i8FcTgCDlFt99DG06huYWYuOQRZhwnWYQILZO8hLp22RJKIpyUyR6/ZpSeucls4bjgJxP6XgfAnc3hsLGUMzPaAImVmJmm51vsfk+t7i9P8veTG3vr77xaREzb2ftwAxvr7nlnt11Q/c/EHzP1FMX6+PbExwcMiWrfbsrasrNE6hTVu//Q0H7zTNgLCPblEH/4OXtUxu/RUYjSDNnpM3l8PMvQwF7NnjEGLJto/Li7R5giy7DSS7TRKN/0F/y0toXDCGj9uHHQOzYGhiuBwOf4+FNwuHg8La+0+jVE3aIy6gKhfQCe+NIeoWZi/N7c0Pzczs7RAXtVpH/VNTQLGTY/L/jfC4Nty6OSZrMPz+WumptHBUqkfjqzmF1ArIS1nETKdvtkcGBk74/9QlIP9/ZYzwMSsMejVeh3ajgLI3Nz4HHGOp9xe1UTODdk8fsdf+68Bf47Ez1hUq/Vrx52DvYfT0/MLc6dr4d7s4kMEx3FrQF7Fa8ffFkS44gBKXO9RUaENoLl75F6wxsL9GUiVg85Juz/QZTvtPNv/bsHxQVVx+RjL7Pd7/Bggna1ZQLGnOg4MtOX9/Uc3bbTNSTmX/a3XpEegUOl3ayeWVSAjp4cYAyMrcq/6+2NwD0PbHgJKr3oyOECFtKxRNfuGGmYOD0mS/w0QRpWehVWjb9bhYXscowOMCLcGgdiu2q5+9Yb2P0MJCiycNXq9zkmvZx52kHGj9psB/03XpBUf/ysgbNIbIAfb7w3MVh9yJGpDjHs8Nx3/ayD0MJ8p+nfa9RZ3Kkb/LtiNG45h3v3fgBitCYdvkrnT2TBjU0674yq7etV6jN0lgfx/tWPx9yoB3o8AAAAASUVORK5CYII=" alt="Escudo de la Institución Educativa 24 de Mayo" width="200" height="168">
+    <div class="texto">
+      <span class="cole">Institución Educativa 24 de Mayo</span>
+      <span class="evento">Feria de la Ciencia, la Tecnología y la Creatividad · 2026</span>
+      <span class="autor">Juego generado con el prompt diseñado por <b>Jesús David Galarcio Noguera</b>, docente asesor del proyecto.</span>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   BetterBest — juego generado con el prompt del proyecto de feria.
+   Comparativos y superlativos en inglés, de séptimo a noveno.
+   Todas las formas salen del banco de adjetivos de más abajo, que
+   está escrito a mano y verificado: el juego nunca las inventa.
+   ============================================================ */
+
+const $ = (id) => document.getElementById(id);
+const az = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+const revuelve = (v) => v.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(p => p[1]);
+const alAzar = (v) => v[az(0, v.length - 1)];
+
+function opciones(correcta, malas) {
+  const vistos = new Set([correcta]);
+  const lista = [correcta];
+  for (const m of malas) {
+    if (lista.length >= 4) break;
+    if (m && !vistos.has(m)) { vistos.add(m); lista.push(m); }
+  }
+  return revuelve(lista);
+}
+
+/* ---------- banco de adjetivos ----------
+   clase: corto (solo +er/+est) · e (termina en e) · y (consonante + y)
+          cvc (hay que doblar la consonante) · largo (more/most) · irregular
+   g: dónde se puede usar en una oración — p persona · o cosa · b las dos
+      x solo para preguntas de forma, porque no encaja en las oraciones del juego */
+const ADJ = [
+  // --- una sílaba: se les agrega -er / -est ---
+  { en:"tall",   es:"alto",        comp:"taller",   sup:"tallest",   clase:"corto", f:["persona"] },
+  { en:"short",  es:"bajo, corto", comp:"shorter",  sup:"shortest",  clase:"corto", f:["persona","libro"] },
+  { en:"old",    es:"viejo",       comp:"older",    sup:"oldest",    clase:"corto", f:["persona","libro","casa"] },
+  { en:"young",  es:"joven",       comp:"younger",  sup:"youngest",  clase:"corto", f:["persona"] },
+  { en:"fast",   es:"rápido",      comp:"faster",   sup:"fastest",   clase:"corto", f:["persona"] },
+  { en:"slow",   es:"lento",       comp:"slower",   sup:"slowest",   clase:"corto", f:["persona"] },
+  { en:"cold",   es:"frío",        comp:"colder",   sup:"coldest",   clase:"corto", f:["dia"] },
+  { en:"warm",   es:"cálido",      comp:"warmer",   sup:"warmest",   clase:"corto", f:["dia"] },
+  { en:"small",  es:"pequeño",     comp:"smaller",  sup:"smallest",  clase:"corto", f:["libro","casa"] },
+  { en:"cheap",  es:"barato",      comp:"cheaper",  sup:"cheapest",  clase:"corto", f:["libro","casa"] },
+  { en:"clean",  es:"limpio",      comp:"cleaner",  sup:"cleanest",  clase:"corto", f:["casa"] },
+  { en:"strong", es:"fuerte",      comp:"stronger", sup:"strongest", clase:"corto", f:["persona"] },
+  { en:"long",   es:"largo",       comp:"longer",   sup:"longest",   clase:"corto", f:["libro"] },
+  { en:"rich",   es:"rico",        comp:"richer",   sup:"richest",   clase:"corto", f:[] },
+  { en:"light",  es:"liviano",     comp:"lighter",  sup:"lightest",  clase:"corto", f:["libro"] },
+  { en:"quick",  es:"rápido",      comp:"quicker",  sup:"quickest",  clase:"corto", f:["persona"] },
+  { en:"deep",   es:"profundo",    comp:"deeper",   sup:"deepest",   clase:"corto", f:[] },
+  { en:"loud",   es:"ruidoso",     comp:"louder",   sup:"loudest",   clase:"corto", f:["persona"] },
+  { en:"smart",  es:"inteligente", comp:"smarter",  sup:"smartest",  clase:"corto", f:["persona"] },
+  { en:"weak",   es:"débil",       comp:"weaker",   sup:"weakest",   clase:"corto", f:["persona"] },
+  { en:"kind",   es:"amable",      comp:"kinder",   sup:"kindest",   clase:"corto", f:["persona"] },
+  { en:"dark",   es:"oscuro",      comp:"darker",   sup:"darkest",   clase:"corto", f:["casa"] },
+  { en:"fresh",  es:"fresco",      comp:"fresher",  sup:"freshest",  clase:"corto", f:["comida"] },
+  { en:"sweet",  es:"dulce",       comp:"sweeter",  sup:"sweetest",  clase:"corto", f:["comida"] },
+  { en:"new",    es:"nuevo",       comp:"newer",    sup:"newest",    clase:"corto", f:["libro","casa"] },
+  // --- terminan en e: solo se agrega r / st ---
+  { en:"nice",   es:"agradable",   comp:"nicer",    sup:"nicest",    clase:"e", f:["persona","casa"] },
+  { en:"large",  es:"grande",      comp:"larger",   sup:"largest",   clase:"e", f:["casa","libro"] },
+  { en:"safe",   es:"seguro",      comp:"safer",    sup:"safest",    clase:"e", f:["casa"] },
+  { en:"wide",   es:"ancho",       comp:"wider",    sup:"widest",    clase:"e", f:["casa"] },
+  { en:"close",  es:"cercano",     comp:"closer",   sup:"closest",   clase:"e", f:[] },
+  { en:"simple", es:"sencillo",    comp:"simpler",  sup:"simplest",  clase:"e", f:["ejercicio","libro"] },
+  { en:"brave",  es:"valiente",    comp:"braver",   sup:"bravest",   clase:"e", f:["persona"] },
+  // --- dos sílabas terminadas en consonante + y: la y se vuelve i ---
+  { en:"happy",  es:"feliz",       comp:"happier",  sup:"happiest",  clase:"y", f:["persona"] },
+  { en:"easy",   es:"fácil",       comp:"easier",   sup:"easiest",   clase:"y", f:["ejercicio","libro"] },
+  { en:"busy",   es:"ocupado",     comp:"busier",   sup:"busiest",   clase:"y", f:["persona"] },
+  { en:"pretty", es:"bonito",      comp:"prettier", sup:"prettiest", clase:"y", f:["casa"] },
+  { en:"dirty",  es:"sucio",       comp:"dirtier",  sup:"dirtiest",  clase:"y", f:["casa"] },
+  { en:"funny",  es:"gracioso",    comp:"funnier",  sup:"funniest",  clase:"y", f:["persona","libro"] },
+  { en:"heavy",  es:"pesado",      comp:"heavier",  sup:"heaviest",  clase:"y", f:["libro"] },
+  { en:"noisy",  es:"ruidoso",     comp:"noisier",  sup:"noisiest",  clase:"y", f:["casa"] },
+  { en:"lucky",  es:"afortunado",  comp:"luckier",  sup:"luckiest",  clase:"y", f:["persona"] },
+  { en:"angry",  es:"enojado",     comp:"angrier",  sup:"angriest",  clase:"y", f:["persona"] },
+  { en:"hungry", es:"hambriento",  comp:"hungrier", sup:"hungriest", clase:"y", f:[] },
+  { en:"friendly", es:"amigable",  comp:"friendlier", sup:"friendliest", clase:"y", f:["persona"] },
+  // --- una vocal entre dos consonantes: se dobla la última ---
+  { en:"big",    es:"grande",      comp:"bigger",   sup:"biggest",   clase:"cvc", f:["casa","libro"] },
+  { en:"hot",    es:"caliente",    comp:"hotter",   sup:"hottest",   clase:"cvc", f:["dia","comida"] },
+  { en:"thin",   es:"delgado",     comp:"thinner",  sup:"thinnest",  clase:"cvc", f:["libro"] },
+  { en:"sad",    es:"triste",      comp:"sadder",   sup:"saddest",   clase:"cvc", f:["persona"] },
+  { en:"wet",    es:"mojado",      comp:"wetter",   sup:"wettest",   clase:"cvc", f:["dia"] },
+  { en:"flat",   es:"plano",       comp:"flatter",  sup:"flattest",  clase:"cvc", f:[] },
+  // --- la mayoría de las de dos sílabas y todas las de tres o más: more / most ---
+  { en:"modern",      es:"moderno",     comp:"more modern",      sup:"most modern",      clase:"largo", f:["casa","libro"] },
+  { en:"famous",      es:"famoso",      comp:"more famous",      sup:"most famous",      clase:"largo", f:["persona","libro"] },
+  { en:"careful",     es:"cuidadoso",   comp:"more careful",     sup:"most careful",     clase:"largo", f:["persona"] },
+  { en:"boring",      es:"aburrido",    comp:"more boring",      sup:"most boring",      clase:"largo", f:["libro","ejercicio"] },
+  { en:"nervous",     es:"nervioso",    comp:"more nervous",     sup:"most nervous",     clase:"largo", f:["persona"] },
+  { en:"expensive",   es:"costoso",     comp:"more expensive",   sup:"most expensive",   clase:"largo", f:["casa","libro"] },
+  { en:"beautiful",   es:"hermoso",     comp:"more beautiful",   sup:"most beautiful",   clase:"largo", f:["casa"] },
+  { en:"important",   es:"importante",  comp:"more important",   sup:"most important",   clase:"largo", f:["libro","ejercicio"] },
+  { en:"interesting", es:"interesante", comp:"more interesting", sup:"most interesting", clase:"largo", f:["libro"] },
+  { en:"difficult",   es:"difícil",     comp:"more difficult",   sup:"most difficult",   clase:"largo", f:["ejercicio","libro"] },
+  { en:"popular",     es:"popular",     comp:"more popular",     sup:"most popular",     clase:"largo", f:["persona","libro"] },
+  { en:"dangerous",   es:"peligroso",   comp:"more dangerous",   sup:"most dangerous",   clase:"largo", f:[] },
+  { en:"comfortable", es:"cómodo",      comp:"more comfortable", sup:"most comfortable", clase:"largo", f:["casa"] },
+  { en:"intelligent", es:"inteligente", comp:"more intelligent", sup:"most intelligent", clase:"largo", f:["persona"] },
+  { en:"delicious",   es:"delicioso",   comp:"more delicious",   sup:"most delicious",   clase:"largo", f:["comida"] },
+  { en:"exciting",    es:"emocionante", comp:"more exciting",    sup:"most exciting",    clase:"largo", f:["libro"] },
+  { en:"generous",    es:"generoso",    comp:"more generous",    sup:"most generous",    clase:"largo", f:["persona"] },
+  // --- irregulares ---
+  { en:"good", es:"bueno",  comp:"better",  sup:"best",     clase:"irregular", f:["persona","libro","comida","ejercicio"] },
+  { en:"bad",  es:"malo",   comp:"worse",   sup:"worst",    clase:"irregular", f:["libro","ejercicio","dia"] },
+  { en:"far",  es:"lejano", comp:"farther", sup:"farthest", clase:"irregular", f:[] }
+];
+
+const porClase = (c) => ADJ.filter(a => a.clase === c);
+const CORTOS = porClase("corto"), LARGOS = porClase("largo"), IRREG = porClase("irregular");
+const ESCRITURA = ADJ.filter(a => ["e","y","cvc"].includes(a.clase));
+const CON_FRASE = ADJ.filter(a => a.f.length > 0);
+
+/* Distractores típicos: el error que de verdad cometen los estudiantes */
+function malasComp(a) {
+  const base = a.en;
+  if (a.clase === "largo") return ["more " + base + "er", base + "er", "most " + base, "more most " + base];
+  if (a.clase === "irregular") return ["more " + a.comp, base + "er", "more " + base, a.sup];
+  return ["more " + base, "more " + a.comp, a.sup, base + "est"];
+}
+function malasSup(a) {
+  const conThe = "the " + a.sup;
+  if (a.clase === "largo") return [a.sup, "the most " + a.en + "est", "the " + a.en + "est", "the more " + a.en];
+  if (a.clase === "irregular") return [a.sup, "the most " + a.sup, "the " + a.en + "est", "the " + a.comp];
+  return [a.sup, "the most " + a.en, "the " + a.comp, "the most " + a.sup];
+}
+
+/* ---------- almacenamiento ---------- */
+const CLAVE = "betterbest.v1";
+let bd = { registros: [], mudo: false };
+function cargar() {
+  try {
+    const crudo = localStorage.getItem(CLAVE);
+    if (crudo) { const d = JSON.parse(crudo); if (d && Array.isArray(d.registros)) bd = { registros:d.registros, mudo:!!d.mudo }; }
+  } catch (e) { /* almacenamiento bloqueado: el juego funciona igual */ }
+}
+function guardar() { try { localStorage.setItem(CLAVE, JSON.stringify(bd)); } catch (e) {} }
+
+/* ---------- sonido ---------- */
+let audio = null;
+function pito(frecuencias, dur) {
+  if (bd.mudo) return;
+  try {
+    if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+    frecuencias.forEach((f, i) => {
+      const osc = audio.createOscillator(), vol = audio.createGain();
+      osc.type = "sine"; osc.frequency.value = f;
+      const t = audio.currentTime + i * dur;
+      vol.gain.setValueAtTime(0.0001, t);
+      vol.gain.exponentialRampToValueAtTime(0.18, t + 0.02);
+      vol.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.connect(vol); vol.connect(audio.destination);
+      osc.start(t); osc.stop(t + dur + 0.02);
+    });
+  } catch (e) {}
+}
+const sonBien = () => pito([660, 880], 0.12);
+const sonMal  = () => pito([240, 180], 0.16);
+const sonNivel = () => pito([523, 659, 784, 1047], 0.13);
+
+/* ---------- oraciones de ejemplo ----------
+   Cada marco solo se usa con adjetivos que encajan con su sujeto. */
+const MARCOS = {
+  persona:   { comp:["Ana is ___ than Luis.", "Ana es ___ que Luis."],
+               sup: ["Ana is ___ student in the class.", "Ana es la estudiante ___ de la clase."] },
+  libro:     { comp:["This book is ___ than that one.", "Este libro es ___ que aquel."],
+               sup: ["This is ___ book in the library.", "Este es el libro ___ de la biblioteca."] },
+  casa:      { comp:["My house is ___ than yours.", "Mi casa es ___ que la tuya."],
+               sup: ["This is ___ house on the street.", "Esta es la casa ___ de la calle."] },
+  comida:    { comp:["This soup is ___ than that one.", "Esta sopa es ___ que aquella."],
+               sup: ["This is ___ dish on the menu.", "Este es el plato ___ del menú."] },
+  dia:       { comp:["Today is ___ than yesterday.", "Hoy está ___ que ayer."],
+               sup: ["This is ___ day of the year.", "Este es el día ___ del año."] },
+  ejercicio: { comp:["This exercise is ___ than that one.", "Este ejercicio es ___ que aquel."],
+               sup: ["This is ___ exercise in the book.", "Este es el ejercicio ___ del libro."] }
+};
+
+/* ============================================================
+   LOS 8 NIVELES, de lo más fácil a lo más difícil
+   ============================================================ */
+const NIVELES = [
+
+  { /* 1 */ titulo:"Comparativo con -er", resumen:"Adjetivos cortos", familia:"corto", ayuda:true,
+    concepto:`<p>El <b>comparativo</b> sirve para decir que algo tiene más de una cualidad que otra cosa.</p><p>Con los adjetivos de <b>una sola sílaba</b> se le agrega <b>-er</b> al final y se usa <b>than</b> para nombrar con qué se compara.</p><p><i>tall → tall<b>er</b> than</i></p>`,
+    ejemplo:`<p>Adjetivo: <b>old</b> (viejo)</p><p>Es corto, así que le agrego -er.</p><p>Comparativo: <b>older</b><br>En una oración: <i>My brother is <b>older than</b> me.</i></p>`,
+    gen() {
+      const a = alAzar(CORTOS);
+      return { palabra:a.en, significado:a.es, etiqueta:"Adjetivo",
+        texto:"¿Cuál es el comparativo?", resp:[a.comp], tipo:"opciones",
+        ops:opciones(a.comp, malasComp(a)),
+        clave:`${a.en} → ${a.comp}. Es de una sílaba, así que lleva -er.`,
+        pasos:[`${a.en} tiene una sola sílaba.`,
+               `A los de una sílaba se les agrega -er: ${a.en} + er = ${a.comp}.`,
+               `No se dice "more ${a.en}": en español decimos "más alto", pero en inglés el "más" va pegado al final.`,
+               `En una oración: ${a.comp} than…`] };
+    }
+  },
+
+  { /* 2 */ titulo:"Superlativo con the -est", resumen:"Adjetivos cortos", familia:"corto", ayuda:true,
+    concepto:`<p>El <b>superlativo</b> dice que algo tiene esa cualidad más que todos los demás de un grupo.</p><p>Con los adjetivos cortos se le agrega <b>-est</b>, y siempre va precedido de <b>the</b>.</p><p><i>tall → <b>the</b> tall<b>est</b></i></p><p>Ese <b>the</b> es parte del superlativo y no se omite. La única excepción es cuando ya hay un posesivo delante: <i>my <b>best</b> friend</i>.</p>`,
+    ejemplo:`<p>Adjetivo: <b>cheap</b> (barato)</p><p>Le agrego -est y le pongo the adelante.</p><p>Superlativo: <b>the cheapest</b><br>En una oración: <i>This is <b>the cheapest</b> shirt in the store.</i></p>`,
+    gen() {
+      const a = alAzar(CORTOS), r = "the " + a.sup;
+      return { palabra:a.en, significado:a.es, etiqueta:"Adjetivo",
+        texto:"¿Cuál es el superlativo?", resp:[r], tipo:"opciones",
+        ops:opciones(r, malasSup(a)),
+        clave:`${a.en} → ${r}. Lleva -est y no puede faltar the.`,
+        pasos:[`${a.en} es de una sílaba, así que el superlativo lleva -est: ${a.sup}.`,
+               `El superlativo siempre va con the adelante: ${r}.`,
+               `Si escribes solo "${a.sup}", falta el artículo the.`] };
+    }
+  },
+
+  { /* 3 */ titulo:"Cambios de escritura", resumen:"-e, -y y doblar la consonante", familia:"escr", ayuda:true, escribir:true,
+    concepto:`<p>Algunos adjetivos cortos cambian al agregarles la terminación. Son tres reglas:</p><p><b>1.</b> Si termina en <b>e</b>, solo se agrega <b>r</b> o <b>st</b>: <i>nice → nicer, nicest</i>.</p><p><b>2.</b> Si termina en <b>consonante + y</b>, la <b>y</b> se vuelve <b>i</b>: <i>happy → happier, happiest</i>.</p><p><b>3.</b> Si termina en <b>consonante + vocal + consonante</b>, se <b>dobla</b> la última consonante: <i>big → bigger, biggest</i>.</p>`,
+    ejemplo:`<p>Adjetivo: <b>hot</b> (caliente), comparativo.</p><p>Termina en h-o-t: consonante, vocal, consonante.</p><p>Entonces doblo la t y agrego -er.</p><p>Resultado: <b>hotter</b>, no "hoter".</p>`,
+    gen() {
+      const a = alAzar(ESCRITURA), sup = Math.random() < 0.5;
+      const r = sup ? a.sup : a.comp;
+      const regla = a.clase === "e" ? "termina en e, así que solo se le agrega " + (sup ? "st" : "r")
+                  : a.clase === "y" ? "termina en consonante + y, así que la y se vuelve i"
+                  : "termina en consonante + vocal + consonante, así que se dobla la última consonante";
+      const ingenuo = a.clase === "e" ? a.en + (sup ? "est" : "er")
+                    : a.clase === "y" ? a.en + (sup ? "est" : "er")
+                    : a.en + (sup ? "est" : "er");
+      return { palabra:a.en, significado:a.es,
+        etiqueta:sup ? "Escribe el superlativo (sin the)" : "Escribe el comparativo",
+        texto:`Escribe el ${sup ? "superlativo" : "comparativo"} de "${a.en}".`,
+        resp:[r], tipo:"escribir",
+        clave:`${a.en} → ${r}, porque ${regla}.`,
+        pasos:[`${a.en} ${regla}.`,
+               `Por eso queda ${r}.`,
+               `El error común es escribir "${ingenuo}", sin aplicar el cambio.`] };
+    }
+  },
+
+  { /* 4 */ titulo:"Adjetivos largos", resumen:"more y the most", familia:"largo", ayuda:true,
+    concepto:`<p>La regla completa es esta: los de <b>una sílaba</b> llevan -er / -est; los de <b>dos sílabas terminados en -y</b> cambian la y por i; y <b>la mayoría de los de dos sílabas</b> y <b>todos los de tres o más</b> son los que llamamos <b>largos</b>. A estos <b>no</b> se les agrega -er ni -est: se les pone una palabra adelante.</p><p>Comparativo: <b>more</b> + adjetivo + <b>than</b><br>Superlativo: <b>the most</b> + adjetivo</p><p>El adjetivo no cambia nunca: <i>expensive → more expensive → the most expensive</i>.</p>`,
+    ejemplo:`<p>Adjetivo: <b>important</b> (importante), superlativo.</p><p>Tiene tres sílabas, así que es de los largos.</p><p>Le pongo the most adelante y lo dejo igual.</p><p>Resultado: <b>the most important</b>, no "the importantest".</p>`,
+    gen() {
+      const a = alAzar(LARGOS), sup = Math.random() < 0.5;
+      const r = sup ? "the " + a.sup : a.comp;
+      return { palabra:a.en, significado:a.es, etiqueta:"Adjetivo",
+        texto:`¿Cuál es el ${sup ? "superlativo" : "comparativo"}?`, resp:[r], tipo:"opciones",
+        ops:opciones(r, sup ? malasSup(a) : malasComp(a)),
+        clave:`${a.en} lleva ${sup ? "the most" : "more"}: ${r}.`,
+        pasos:[`${a.en} es de los largos: lleva more o the most, nunca -er ni -est.`,
+               sup ? `A los largos se les pone the most adelante: ${r}.`
+                   : `A los largos se les pone more adelante: ${r}.`,
+               `El adjetivo no cambia: nunca se escribe "${a.en}${sup ? "est" : "er"}".`] };
+    }
+  },
+
+  { /* 5 */ titulo:"Los irregulares", resumen:"good, bad y far", familia:"largo", ayuda:true,
+    concepto:`<p>Tres adjetivos muy usados no siguen ninguna regla y hay que aprendérselos de memoria:</p><p><b>good</b> (bueno) → <b>better</b> → <b>the best</b><br><b>bad</b> (malo) → <b>worse</b> → <b>the worst</b><br><b>far</b> (lejano) → <b>farther</b> → <b>the farthest</b></p><p>De <i>far</i> también se aceptan <b>further</b> y <b>the furthest</b>, que son igual de correctos y más usados cuando no se habla de distancia física.</p><p>Nunca llevan more ni -er: no existe "gooder" ni "more better".</p>`,
+    ejemplo:`<p>Adjetivo: <b>good</b> (bueno), comparativo.</p><p>Es irregular, así que no le agrego -er ni le pongo more.</p><p>Resultado: <b>better</b><br>En una oración: <i>This song is <b>better than</b> that one.</i></p>`,
+    gen() {
+      const a = alAzar(IRREG), sup = Math.random() < 0.5;
+      const tipo = az(1, 3);
+      if (tipo === 1 && a.f.length) {
+        // la forma irregular dentro de una oración
+        const marco = MARCOS[alAzar(a.f)][sup ? "sup" : "comp"];
+        const r = sup ? "the " + a.sup : a.comp;
+        return { frase:marco[0], traduccion:marco[1], adjetivo:a.en, significado:a.es,
+          texto:"¿Qué forma va en el espacio?", resp:[r], tipo:"opciones",
+          ops:opciones(r, [sup ? a.comp : "the " + a.sup, a.en + (sup ? "est" : "er"),
+                           "more " + a.en, sup ? a.sup : "more " + a.comp]),
+          clave:`${a.en} es irregular: ${r}.`,
+          pasos:[sup ? `La oración señala uno dentro de un grupo, así que va el superlativo.`
+                     : `La oración trae "than", así que va el comparativo.`,
+                 `${a.en} → ${a.comp} → the ${a.sup}.`,
+                 `Por eso aquí va ${r}.`] };
+      }
+      if (tipo === 2) {
+        // de la forma irregular al adjetivo base
+        const forma = sup ? a.sup : a.comp;
+        const otros = revuelve(IRREG.filter(x => x.en !== a.en)).slice(0, 2).map(x => x.en);
+        return { palabra:forma, significado:sup ? "superlativo" : "comparativo", etiqueta:"Forma irregular",
+          texto:"¿De qué adjetivo viene esta forma?", resp:[a.en], tipo:"opciones",
+          ops:opciones(a.en, otros.concat([a.en + "er", a.sup, "the " + a.sup])),
+          clave:`"${forma}" viene de ${a.en} (${a.es}).`,
+          pasos:[`"${forma}" no se parece a su adjetivo, porque es irregular.`,
+                 `${a.en} → ${a.comp} → the ${a.sup}.`,
+                 `Hay que aprenderse las tres formas juntas.`] };
+      }
+      const r = sup ? "the " + a.sup : a.comp;
+      return { palabra:a.en, significado:a.es, etiqueta:"Adjetivo irregular",
+        texto:`¿Cuál es el ${sup ? "superlativo" : "comparativo"}?`, resp:[r], tipo:"opciones",
+        ops:opciones(r, sup ? malasSup(a) : malasComp(a)),
+        clave:`${a.en} es irregular: ${a.comp} y the ${a.sup}.`,
+        pasos:[`${a.en} no sigue ninguna regla: es irregular.`,
+               `Comparativo: ${a.comp}. Superlativo: the ${a.sup}.`,
+               `Por eso no existe "${a.en}er" ni "more ${a.comp}".`] };
+    }
+  },
+
+  { /* 6 */ titulo:"¿Cuál de los dos?", resumen:"Comparativo o superlativo", familia:"avanz", ayuda:true,
+    concepto:`<p>Ya sabes formar los dos. Ahora hay que decidir cuál pide la oración.</p><p>Si se comparan <b>dos</b> cosas, va el <b>comparativo</b> y aparece la palabra <b>than</b>.</p><p>Si se señala <b>una entre varias</b>, va el <b>superlativo</b> y aparecen <b>the</b> y expresiones como <i>in the class</i> o <i>in the world</i>.</p>`,
+    ejemplo:`<p><b>Ana is ___ than Luis. (tall)</b></p><p>Veo la palabra "than", así que se comparan dos personas.</p><p>Va el comparativo: <b>taller</b>.</p>`,
+    gen() {
+      const a = alAzar(CON_FRASE);
+      const sup = Math.random() < 0.5;
+      const marco = MARCOS[alAzar(a.f)][sup ? "sup" : "comp"];
+      const r = sup ? "the " + a.sup : a.comp;
+      const otra = sup ? a.comp : "the " + a.sup;
+      return { frase:marco[0], traduccion:marco[1], adjetivo:a.en, significado:a.es,
+        texto:"¿Qué forma va en el espacio?", resp:[r], tipo:"opciones",
+        ops:opciones(r, [otra, a.en, "more " + a.en, "the most " + a.en, a.sup, "the " + a.comp]),
+        clave:sup ? `Se señala uno entre varios, así que va el superlativo: ${r}.`
+                  : `Aparece "than", así que se comparan dos: ${r}.`,
+        pasos:[sup ? `La oración señala uno dentro de un grupo, no compara dos cosas.`
+                   : `La oración trae la palabra "than", que siempre acompaña al comparativo.`,
+               sup ? `Entonces va el superlativo, con the adelante.` : `Entonces va el comparativo.`,
+               `De ${a.en} (${a.es}): ${r}.`] };
+    }
+  },
+
+  { /* 7 */ titulo:"than, the y as… as", resumen:"Las palabras que acompañan", familia:"avanz",
+    concepto:`<p>Las formas no van solas. Hay tres palabras que las acompañan y que suelen fallar:</p><p><b>than</b> va después del comparativo: <i>taller <b>than</b> me</i>. Ojo: es <b>than</b>, con n, no "that".</p><p><b>the</b> va antes del superlativo: <i><b>the</b> tallest</i>.</p><p>Para decir que dos cosas son <b>iguales</b> se usa <b>as … as</b>, con el adjetivo <b>sin cambiar</b>: <i>Ana is <b>as tall as</b> Luis.</i> Y para decir que no lo son: <i><b>not as tall as</b></i>.</p>`,
+    ejemplo:`<p><b>Ana is as ___ as Luis. (tall)</b></p><p>La estructura as … as indica igualdad.</p><p>El adjetivo va <b>sin cambiar</b>, ni con -er ni con more.</p><p>Resultado: <b>tall</b></p>`,
+    gen() {
+      const banco = [
+        ["My sister is taller ___ me.", "than", ["that","then","as"], "Después del comparativo va «than», con n. «That» significa otra cosa."],
+        ["This is ___ best movie of the year.", "the", ["a","most","more"], "El superlativo siempre lleva «the» adelante."],
+        ["Pedro is as ___ as his brother. (tall)", "tall", ["taller","tallest","more tall"], "Entre as y as el adjetivo va sin cambiar."],
+        ["This book is not as ___ as that one. (interesting)", "interesting", ["more interesting","interestinger","most interesting"], "Con as … as el adjetivo nunca cambia, ni siquiera los largos."],
+        ["Bogotá is colder ___ Cartagena.", "than", ["that","of","as"], "Después del comparativo va «than»."],
+        ["She is ___ most intelligent girl in the class.", "the", ["a","more","as"], "El superlativo lleva «the»."],
+        ["My bag is as ___ as yours. (heavy)", "heavy", ["heavier","heaviest","more heavy"], "Entre as y as el adjetivo va en su forma básica."],
+        ["This exercise is easier ___ the other one.", "than", ["that","then","as"], "«Than» acompaña siempre al comparativo."],
+        ["Today is ___ hottest day of the year.", "the", ["a","most","very"], "Falta el artículo «the» del superlativo."],
+        ["Luis is not as ___ as Pedro. (fast)", "fast", ["faster","fastest","more fast"], "Con not as … as el adjetivo tampoco cambia."],
+        ["Mathematics is more difficult ___ English.", "than", ["that","of","as"], "«Than» va después de more + adjetivo."],
+        ["That was ___ worst day of my life.", "the", ["a","most","more"], "Worst es superlativo, así que necesita «the»."],
+        ["Her house is as ___ as mine. (big)", "big", ["bigger","biggest","more big"], "Entre as y as se usa el adjetivo tal cual."],
+        ["My father is older ___ my mother.", "than", ["that","then","as"], "Después de older va «than»."],
+        ["This is ___ most expensive phone in the store.", "the", ["a","more","very"], "El superlativo de los largos también lleva «the»: the most expensive."],
+        ["My school is bigger ___ yours.", "than", ["that","then","as"], "Después de bigger va «than»."],
+        ["This is ___ funniest movie I know.", "the", ["a","most","very"], "El superlativo necesita «the»: the funniest."],
+        ["Your house is as ___ as mine. (clean)", "clean", ["cleaner","cleanest","more clean"], "Entre as y as el adjetivo va en su forma básica."],
+        ["The Amazon is longer ___ the Magdalena.", "than", ["that","of","as"], "«Than» acompaña al comparativo longer."],
+        ["He is not as ___ as his brother. (strong)", "strong", ["stronger","strongest","more strong"], "Con not as … as el adjetivo no cambia."]
+      ];
+      const [frase, buena, malas, porque] = alAzar(banco);
+      return { frase:frase.replace("___", '<span class="hueco"></span>'),
+        texto:"¿Qué palabra va en el espacio?", resp:[buena], tipo:"opciones",
+        ops:opciones(buena, malas), clave:porque,
+        pasos:[porque, `La palabra correcta es «${buena}».`,
+               `La oración queda: ${frase.replace("___", buena)}`] };
+    }
+  },
+
+  { /* 8 */ titulo:"Corrige la frase", resumen:"Los errores más comunes", familia:"avanz",
+    concepto:`<p>Este es el nivel de cierre: hay que reconocer, dentro de una oración completa, si el comparativo o el superlativo está bien formado.</p><p>Los errores más frecuentes son <b>marcar dos veces</b> (more taller, the most biggest), usar <b>more</b> con adjetivos cortos, usar <b>-er</b> con adjetivos largos, <b>olvidar the</b> en el superlativo y escribir <b>that</b> en lugar de <b>than</b>.</p>`,
+    ejemplo:`<p>¿Cuál está bien escrita?</p><p>"My brother is more taller than me." ✗<br>"My brother is taller than me." ✓</p><p>No se puede marcar dos veces: o se usa <b>more</b>, o se usa <b>-er</b>, nunca los dos.</p>`,
+    gen() {
+      const banco = [
+        ["My brother is taller than me.", ["My brother is more taller than me.","My brother is more tall than me.","My brother is tallest than me."], "No se marca dos veces: o more, o -er, nunca los dos."],
+        ["This is the biggest house on the street.", ["This is the most biggest house on the street.","This is the bigest house on the street.","This is biggest house on the street."], "Big dobla la g y no lleva most: the biggest."],
+        ["English is easier than Chinese.", ["English is more easier than Chinese.","English is more easy than Chinese.","English is easyer than Chinese."], "Easy termina en consonante + y: easier, sin more."],
+        ["She is the most intelligent student.", ["She is the intelligentest student.","She is the more intelligent student.","She is most intelligent student."], "Intelligent es largo: the most intelligent."],
+        ["This song is better than that one.", ["This song is more better than that one.","This song is gooder than that one.","This song is more good than that one."], "Good es irregular: better, sin more."],
+        ["Yesterday was the worst day of the week.", ["Yesterday was the baddest day of the week.","Yesterday was the most worst day of the week.","Yesterday was worst day of the week."], "Bad es irregular: the worst."],
+        ["My phone is more expensive than yours.", ["My phone is expensiver than yours.","My phone is more expensiver than yours.","My phone is most expensive than yours."], "Expensive es largo: more expensive."],
+        ["Today is hotter than yesterday.", ["Today is more hot than yesterday.","Today is hoter than yesterday.","Today is the hotter than yesterday."], "Hot dobla la t: hotter."],
+        ["She is the happiest girl in the class.", ["She is the happyest girl in the class.","She is the most happy girl in the class.","She is happiest girl in the class."], "Happy cambia la y por i: the happiest."],
+        ["This exercise is easier than that one.", ["This exercise is easier that one.","This exercise is easier then that one.","This exercise is more easy that one."], "Después del comparativo va than, no that ni then."],
+        ["Cartagena is more popular than Montería.", ["Cartagena is popularer than Montería.","Cartagena is more popularer than Montería.","Cartagena is the more popular than Montería."], "Popular es largo: more popular."],
+        ["My bag is heavier than yours.", ["My bag is more heavy than yours.","My bag is heavyer than yours.","My bag is the heavier than yours."], "Heavy cambia la y por i: heavier."],
+        ["He is the youngest brother.", ["He is the most young brother.","He is youngest brother.","He is the younger brother of all."], "Young es corto: the youngest, con the."],
+        ["This road is safer than the other one.", ["This road is more safe than the other one.","This road is safeer than the other one.","This road is more safer than the other one."], "Safe termina en e: solo se le agrega r."],
+        ["Ana is as tall as her sister.", ["Ana is as taller as her sister.","Ana is as tall than her sister.","Ana is so tall as her sister."], "Entre as y as el adjetivo va sin cambiar."],
+        ["This is the best song on the album.", ["This is the most best song on the album.","This is the goodest song on the album.","This is best song on the album."], "Good es irregular: the best, con the y sin most."],
+        ["My house is closer than the school.", ["My house is more close than the school.","My house is closeer than the school.","My house is the closer than the school."], "Close termina en e: solo se le agrega r."],
+        ["That exam was more difficult than this one.", ["That exam was difficulter than this one.","That exam was more difficulter than this one.","That exam was most difficult than this one."], "Difficult es largo: more difficult."],
+        ["She is the friendliest girl in the group.", ["She is the friendlyest girl in the group.","She is the most friendly girl in the group.","She is friendliest girl in the group."], "Friendly cambia la y por i: the friendliest."],
+        ["My notebook is thinner than yours.", ["My notebook is thiner than yours.","My notebook is more thin than yours.","My notebook is the thinner than yours."], "Thin dobla la n: thinner."]
+      ];
+      const [buena, malas, porque] = alAzar(banco);
+      return { texto:"¿Cuál de estas oraciones está bien escrita?", resp:[buena], tipo:"opciones",
+        ops:opciones(buena, malas), clave:porque,
+        pasos:[porque, `La oración correcta es: ${buena}`] };
+    }
+  }
+];
+
+const COLOR = { corto:"var(--corto)", escr:"var(--escr)", largo:"var(--largo)", avanz:"var(--avanz)" };
+const PREGUNTAS = 5, META = 4;   // cinco preguntas por nivel; cuatro aciertos para pasar
+
+let reg = null, S = null;
+
+const PANTALLAS = ["p-inicio","p-mapa","p-explica","p-juego","p-fin","p-docente"];
+function ver(id) { PANTALLAS.forEach(p => { $(p).hidden = (p !== id); }); window.scrollTo(0, 0); }
+function pintaAcento(f) { document.documentElement.style.setProperty("--acento", COLOR[f] || "var(--corto)"); }
+
+function buscaRegistro(nombre, grado) {
+  const llave = (nombre + "|" + grado).toLowerCase().trim();
+  return bd.registros.find(r => (r.nombre + "|" + r.grado).toLowerCase().trim() === llave) || null;
+}
+function nuevoRegistro(nombre, grado) {
+  const r = { nombre, grado, nivelMax:1, puntaje:0, aciertos:0, errores:0, segundos:0, fecha:hoy() };
+  bd.registros.push(r); guardar(); return r;
+}
+function hoy() {
+  const d = new Date();
+  return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
+}
+function reloj(seg) { return `${Math.floor(seg/60)} min ${String(seg%60).padStart(2,"0")} s`; }
+
+function pintaMapa() {
+  $("m-regla").textContent = `Cada nivel se apoya en el anterior. Para avanzar necesitas ${META} aciertos de ${PREGUNTAS}. Puedes repetir los niveles que ya ganaste.`;
+  $("saludo").textContent = "Hola, " + reg.nombre.split(" ")[0];
+  $("m-puntaje").textContent = reg.puntaje;
+  $("b-repaso").hidden = reg.nivelMax < 2;
+  pintaAcento(NIVELES[Math.min(reg.nivelMax, NIVELES.length) - 1].familia);
+  const cont = $("lista-niveles"); cont.innerHTML = "";
+  NIVELES.forEach((n, i) => {
+    const num = i + 1, abierto = num <= reg.nivelMax, hecho = num < reg.nivelMax;
+    const b = document.createElement("button");
+    b.className = "nivel" + (hecho ? " hecho" : "");
+    b.style.setProperty("--c", COLOR[n.familia]);
+    b.disabled = !abierto;
+    b.innerHTML = `<span class="num">${num}</span><span class="txt"><b>${n.titulo}</b><span>${n.resumen}</span></span><span class="est">${hecho ? "Superado" : abierto ? "Jugar" : "Cerrado"}</span>`;
+    b.addEventListener("click", () => explicar(num));
+    cont.appendChild(b);
+  });
+}
+
+let nivelPendiente = 1;
+function explicar(num) {
+  const n = NIVELES[num - 1];
+  nivelPendiente = num; pintaAcento(n.familia);
+  $("e-chip").textContent = "Nivel " + num;
+  $("e-titulo").textContent = n.titulo;
+  $("e-concepto").innerHTML = n.concepto;
+  $("e-ejemplo").innerHTML = n.ejemplo;
+  ver("p-explica");
+}
+
+function empezarNivel(num) {
+  pintaAcento(NIVELES[num - 1].familia);
+  S = { nivel:num, i:0, aciertos:0, errores:0, puntos:0, racha:0, refuerzo:0, q:null, t0:Date.now(), vistas:new Set(), total:PREGUNTAS, repaso:false };
+  $("j-chip").textContent = "Nivel " + num;
+  $("b-abandonar").textContent = "Salir del nivel";
+  ver("p-juego"); siguiente();
+}
+/* Repaso: 10 preguntas mezcladas de todos los niveles ya superados.
+   No desbloquea nada ni se puede perder; sirve para practicar con los temas
+   revueltos, que es como se afianza lo aprendido. */
+function empezarRepaso() {
+  $("b-abandonar").textContent = "Salir del repaso";
+  S = { repaso:true, hasta: Math.max(1, reg.nivelMax - 1), total: 10, nivel: 1,
+        i:0, aciertos:0, errores:0, puntos:0, racha:0, refuerzo:0, q:null,
+        t0: Date.now(), vistas: new Set() };
+  ver("p-juego"); siguiente();
+}
+
+function siguiente() {
+  S.refuerzo = 0; S.i++;
+  if (S.repaso && S.i <= S.total) {
+    // En el repaso, cada pregunta sale de un nivel distinto de los ya superados.
+    S.nivel = az(1, S.hasta);
+    pintaAcento(NIVELES[S.nivel - 1].familia);
+    $("j-chip").textContent = NIVELES[S.nivel - 1].titulo;
+  }
+  if (S.i > S.total) return terminarNivel();
+  nuevaPregunta(false);
+}
+
+function nuevaPregunta(esRefuerzo) {
+  const nivel = NIVELES[S.nivel - 1];
+  // Genero hasta dar con una pregunta que no haya salido ya en este nivel.
+  let q, firma, intentos = 0;
+  do {
+    q = nivel.gen();
+    firma = (q.texto || "") + "|" + (q.palabra || "") + (q.frase || "") + "|" + q.resp.join(",");
+    intentos++;
+  } while (S.vistas.has(firma) && intentos < 60);
+  S.vistas.add(firma);
+  S.q = q;
+
+  $("j-total").textContent = S.total;
+  $("j-num").textContent = Math.min(S.i, S.total);
+  $("j-puntos").textContent = S.puntos;
+  $("j-barra").style.width = ((S.i - 1) / S.total * 100) + "%";
+  const chipRacha = $("j-racha");
+  chipRacha.hidden = S.racha < 3;
+  if (S.racha >= 3) chipRacha.innerHTML = `Racha <b>${S.racha}</b>`;
+
+  $("j-aviso").innerHTML = esRefuerzo ? `<p class="silencio">Intenta con uno parecido para afianzarlo.</p>` : "";
+  $("b-seguir").hidden = true;
+  $("j-tabla").hidden = true;
+  $("b-ayuda").hidden = !nivel.ayuda;
+  $("b-ayuda").textContent = "Ver las reglas";
+
+  const mu = $("j-muestra");
+  if (q.palabra) {
+    mu.innerHTML = `<span class="etiq">${q.etiqueta || ""}</span>
+      <div class="palabra">${q.palabra}<small>${q.significado}</small></div>`;
+    mu.hidden = false;
+  } else if (q.frase) {
+    mu.innerHTML = `<span class="etiq">Completa</span><div class="frase">${q.frase}${
+      q.adjetivo ? ` <b>(${q.adjetivo})</b>` : ""}${
+      q.traduccion ? `<small>${q.traduccion}${q.significado ? " · " + q.adjetivo + " = " + q.significado : ""}</small>` : ""}</div>`;
+    mu.hidden = false;
+  } else mu.hidden = true;
+
+  $("j-operacion").textContent = q.texto;
+
+  if (q.tipo === "opciones") {
+    $("j-escribir").hidden = true;
+    const cont = $("j-opciones"); cont.hidden = false; cont.innerHTML = "";
+    const largo = q.ops.some(o => String(o).length > 14);
+    cont.style.gridTemplateColumns = largo ? "1fr" : "repeat(2,1fr)";
+    q.ops.forEach(v => {
+      const b = document.createElement("button");
+      b.textContent = v;
+      b.style.fontSize = largo ? ".97rem" : "1.15rem";
+      b.addEventListener("click", () => responder([v], b));
+      cont.appendChild(b);
+    });
+  } else {
+    $("j-opciones").hidden = true;
+    $("j-escribir").hidden = false;
+    $("j-casillas").innerHTML = `<div class="casilla"><label for="c0">Your answer</label>
+      <input id="c0" type="text" inputmode="text" autocomplete="off" autocapitalize="none"
+        autocorrect="off" spellcheck="false" maxlength="22"
+        style="width:230px; max-width:72vw; font-size:1.4rem" class="activa"></div>`;
+    const tec = $("j-teclado"); tec.innerHTML = "";
+    const listo = document.createElement("button");
+    listo.textContent = "Listo"; listo.className = "b-principal";
+    listo.addEventListener("click", enviarEscrito);
+    tec.appendChild(listo);
+    const i = $("c0");
+    i.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); enviarEscrito(); } });
+    i.focus({ preventScroll:true });
+  }
+}
+
+function enviarEscrito() {
+  const i = $("c0");
+  if (!i || i.value.trim() === "") { if (i) i.focus({ preventScroll:true }); return; }
+  responder([i.value.trim()], null);
+}
+
+const norm = (x) => String(x).trim().toLowerCase().replace(/\s+/g, " ");
+
+function responder(valores, boton) {
+  const q = S.q;
+  const bien = q.resp.every((v, k) => norm(valores[k]) === norm(v));
+  const esRefuerzo = S.refuerzo > 0;
+
+  document.querySelectorAll("#j-opciones button").forEach(b => b.disabled = true);
+  const inp = $("c0"); if (inp) inp.disabled = true;
+  document.querySelectorAll("#j-teclado button").forEach(b => b.disabled = true);
+
+  if (q.tipo === "opciones") {
+    document.querySelectorAll("#j-opciones button").forEach(b => {
+      if (norm(b.textContent) === norm(q.resp[0])) b.classList.add("buena");
+    });
+    if (!bien && boton) boton.classList.add("mala");
+  }
+
+  if (bien) {
+    sonBien();
+    if (!esRefuerzo) {
+      S.aciertos++; S.racha++;
+      const suma = 10 + (S.racha >= 3 ? 5 : 0);
+      S.puntos += suma;
+      $("j-aviso").innerHTML = `<div class="aviso bien"><h3>¡Correcto! +${suma}${S.racha >= 3 ? " (racha de " + S.racha + ")" : ""}</h3><p>${q.clave}</p></div>`;
+    } else {
+      S.puntos += 2;
+      $("j-aviso").innerHTML = `<div class="aviso bien"><h3>¡Eso es! +2</h3><p>${q.clave} Ahora sigamos.</p></div>`;
+    }
+    $("j-puntos").textContent = S.puntos;
+    $("b-seguir").textContent = "Continuar";
+    $("b-seguir").onclick = siguiente;
+    $("b-seguir").hidden = false;
+  } else {
+    sonMal();
+    S.racha = 0;
+    if (!esRefuerzo) S.errores++;   // el error no resta puntos: ya cuesta la racha y el ejercicio de refuerzo
+    $("j-aviso").innerHTML = `<div class="aviso mal"><h3>Casi. La respuesta es: ${q.resp[0]}</h3>
+      <p>Mira por qué:</p><ol class="pasos">${q.pasos.map(p => `<li>${p}</li>`).join("")}</ol></div>`;
+    S.refuerzo++;
+    if (S.refuerzo <= 2 && !S.repaso) { $("b-seguir").textContent = "Intentar uno parecido"; $("b-seguir").onclick = () => nuevaPregunta(true); }
+    else { $("b-seguir").textContent = "Continuar"; $("b-seguir").onclick = siguiente; }
+    $("b-seguir").hidden = false;
+  }
+  $("j-barra").style.width = (S.i / S.total * 100) + "%";
+}
+
+function terminarNivel() {
+  const seg = Math.round((Date.now() - S.t0) / 1000);
+  if (S.repaso) {
+    reg.puntaje += S.puntos; reg.aciertos += S.aciertos; reg.errores += S.errores;
+    reg.segundos += seg; reg.fecha = hoy(); guardar();
+    $("f-titulo").textContent = "Repaso terminado";
+    $("f-aciertos").textContent = S.aciertos + " / " + S.total;
+    $("f-texto").textContent = "Preguntas mezcladas de los niveles que ya superaste. Aquí no se gana ni se pierde nivel: es solo para practicar.";
+    $("f-ok").textContent = S.aciertos; $("f-err").textContent = S.errores;
+    $("f-pts").textContent = S.puntos; $("f-tiempo").textContent = reloj(seg);
+    $("b-repetir").textContent = "Otro repaso";
+    $("b-repetir").onclick = empezarRepaso;
+    $("b-continuar").textContent = "Ir al mapa de niveles";
+    $("b-continuar").onclick = () => { pintaMapa(); ver("p-mapa"); };
+    return ver("p-fin");
+  }
+  const paso = S.aciertos >= META;
+  reg.puntaje += S.puntos; reg.aciertos += S.aciertos; reg.errores += S.errores;
+  reg.segundos += seg; reg.fecha = hoy();
+  if (paso && S.nivel === reg.nivelMax && reg.nivelMax < NIVELES.length) reg.nivelMax++;
+  guardar();
+  if (paso) sonNivel();
+  $("f-titulo").textContent = paso ? "¡Nivel superado!" : "Casi lo logras";
+  $("f-aciertos").textContent = S.aciertos + " / " + S.total;
+  $("f-texto").textContent = paso
+    ? (S.nivel < NIVELES.length ? "Ya puedes pasar al nivel " + (S.nivel + 1) + "." : "¡Terminaste los ocho niveles! Puedes repetir el que quieras para mejorar tu puntaje.")
+    : "Necesitas " + META + " aciertos de " + PREGUNTAS + " para avanzar. Repasa la explicación y vuelve a intentarlo: los ejercicios serán distintos.";
+  $("f-ok").textContent = S.aciertos; $("f-err").textContent = S.errores;
+  $("f-pts").textContent = S.puntos; $("f-tiempo").textContent = reloj(seg);
+  $("b-continuar").textContent = paso ? "Ir al mapa de niveles" : "Ver la explicación otra vez";
+  $("b-continuar").onclick = () => { if (paso) { pintaMapa(); ver("p-mapa"); } else explicar(S.nivel); };
+  $("b-repetir").textContent = "Repetir nivel";
+  $("b-repetir").onclick = () => empezarNivel(S.nivel);
+  ver("p-fin");
+}
+
+/* ---------- tabla de reglas ---------- */
+function pintaTabla() {
+  const bloque = (titulo, lista) => `<table><caption>${titulo}</caption>
+    <tr><th>Adjetivo</th><th>Comparativo</th><th>Superlativo</th></tr>` +
+    lista.map(a => `<tr><td>${a.en} <span style="color:var(--suave)">(${a.es})</span></td><td>${a.comp}</td><td>the ${a.sup}</td></tr>`).join("") +
+    `</table>`;
+  $("j-tabla").innerHTML =
+    bloque("Una sílaba: -er / -est", CORTOS.slice(0, 8)) +
+    bloque("Terminan en e: solo r / st", porClase("e")) +
+    bloque("Dos sílabas en consonante + y: la y se vuelve i", porClase("y").slice(0, 7)) +
+    bloque("Se dobla la última consonante", porClase("cvc")) +
+    bloque("Dos sílabas o más: more / the most", LARGOS.slice(0, 8)) +
+    bloque("Irregulares", IRREG);
+}
+
+/* ---------- panel del docente ---------- */
+function pintaDocente() {
+  const cuerpo = $("d-tabla"); cuerpo.innerHTML = "";
+  const orden = [...bd.registros].sort((a, b) => b.puntaje - a.puntaje);
+  if (!orden.length) cuerpo.innerHTML = `<tr><td colspan="5" class="silencio">Todavía no hay resultados en este dispositivo.</td></tr>`;
+  else orden.forEach(r => {
+    const f = document.createElement("tr");
+    f.innerHTML = `<td>${r.nombre}</td><td>${r.grado}</td><td class="n">${r.nivelMax}</td><td class="n">${r.puntaje}</td><td class="n">${r.aciertos}</td>`;
+    cuerpo.appendChild(f);
+  });
+  $("d-texto").hidden = true; $("d-aviso").hidden = true; $("d-confirma").hidden = true;
+}
+function textoResumen() {
+  if (!reg) return planilla();
+  return `BetterBest — resultados de ${reg.nombre} (${reg.grado})
+Nivel alcanzado: ${reg.nivelMax} de ${NIVELES.length}
+Puntaje acumulado: ${reg.puntaje}
+Aciertos: ${reg.aciertos} · Errores: ${reg.errores}
+Tiempo jugado: ${reloj(reg.segundos)}
+Última sesión: ${reg.fecha}`;
+}
+function planilla() {
+  const filas = [["Nombre","Grado","Nivel alcanzado","Puntaje","Aciertos","Errores","Minutos","Fecha"]];
+  bd.registros.forEach(r => filas.push([r.nombre, r.grado, r.nivelMax, r.puntaje, r.aciertos, r.errores, Math.round(r.segundos/60), r.fecha]));
+  return filas.map(f => f.map(c => `"${String(c).replace(/"/g,'""')}"`).join(";")).join("\n");
+}
+function copiar(texto, etiqueta) {
+  const caja = $("d-texto"), aviso = $("d-aviso");
+  caja.value = texto; caja.hidden = false; aviso.hidden = false;
+  const listo = () => { aviso.textContent = etiqueta + " copiado. Ya puedes pegarlo donde lo necesites."; };
+  const aMano = () => { aviso.textContent = "Selecciona el texto de abajo y cópialo a mano."; caja.focus(); caja.select(); };
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(texto).then(listo).catch(aMano);
+    else aMano();
+  } catch (e) { aMano(); }
+}
+function bajarCSV() {
+  const aviso = $("d-aviso"); aviso.hidden = false;
+  try {
+    const url = URL.createObjectURL(new Blob(["﻿" + planilla()], { type:"text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = "betterbest-resultados.csv";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    aviso.textContent = "Si la descarga no empezó, usa el botón de copiar: algunos visores bloquean las descargas.";
+  } catch (e) {
+    aviso.textContent = "Este visor no permite descargar. Usa el botón de copiar la planilla.";
+  }
+}
+
+/* ---------- eventos ---------- */
+$("b-entrar").addEventListener("click", () => {
+  const nombre = $("in-nombre").value.trim(), grado = $("in-grado").value.trim();
+  if (!nombre || !grado) { $("aviso-inicio").hidden = false; return; }
+  $("aviso-inicio").hidden = true;
+  reg = buscaRegistro(nombre, grado) || nuevoRegistro(nombre, grado);
+  pintaMapa(); ver("p-mapa");
+});
+$("in-grado").addEventListener("keydown", e => { if (e.key === "Enter") $("b-entrar").click(); });
+$("b-sonido").addEventListener("click", () => {
+  bd.mudo = !bd.mudo; guardar();
+  $("b-sonido").textContent = "Sonido: " + (bd.mudo ? "apagado" : "activado");
+  if (!bd.mudo) sonBien();
+});
+$("b-ayuda").addEventListener("click", () => {
+  const t = $("j-tabla"); t.hidden = !t.hidden;
+  $("b-ayuda").textContent = t.hidden ? "Ver las reglas" : "Ocultar las reglas";
+});
+$("b-volver-mapa").addEventListener("click", () => { pintaMapa(); ver("p-mapa"); });
+$("b-jugar").addEventListener("click", () => empezarNivel(nivelPendiente));
+$("b-abandonar").addEventListener("click", () => { pintaMapa(); ver("p-mapa"); });
+$("b-salir").addEventListener("click", () => { reg = null; ver("p-inicio"); });
+$("b-ver-docente").addEventListener("click", () => { pintaDocente(); ver("p-docente"); });
+$("b-repaso").addEventListener("click", empezarRepaso);
+$("b-docente2").addEventListener("click", () => { pintaDocente(); ver("p-docente"); });
+$("b-cerrar-docente").addEventListener("click", () => { if (reg) { pintaMapa(); ver("p-mapa"); } else ver("p-inicio"); });
+$("b-copiar-resumen").addEventListener("click", () => copiar(textoResumen(), "Resumen"));
+$("b-copiar-csv").addEventListener("click", () => copiar(planilla(), "Planilla"));
+$("b-bajar-csv").addEventListener("click", bajarCSV);
+$("b-reiniciar").addEventListener("click", () => { $("d-confirma").hidden = false; });
+$("b-no").addEventListener("click", () => { $("d-confirma").hidden = true; });
+$("b-si").addEventListener("click", () => { bd.registros = []; guardar(); reg = null; pintaDocente(); ver("p-inicio"); });
+
+/* ---------- arranque ---------- */
+// El enlace de regreso aparece solo si el jugador llegó desde otra página del mismo
+// sitio, por ejemplo la portada. Si abrió el juego directamente, no se muestra.
+try {
+  const vengo = document.referrer;
+  if (vengo && new URL(vengo).origin === location.origin
+      && new URL(vengo).pathname !== location.pathname) {
+    const v = $("b-volver-sitio");
+    v.hidden = false;
+    v.addEventListener("click", (e) => { e.preventDefault(); history.back(); });
+  }
+} catch (e) { /* sin referente: el enlace queda oculto */ }
+
+cargar();
+pintaTabla();
+$("b-sonido").textContent = "Sonido: " + (bd.mudo ? "apagado" : "activado");
+if (bd.registros.length) {
+  const u = bd.registros[bd.registros.length - 1];
+  $("in-nombre").value = u.nombre; $("in-grado").value = u.grado;
+}
+ver("p-inicio");
+</script>
+</body>
+</html>

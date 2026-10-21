@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CodónLab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap">
+<style>
+/* Una pantalla a la vez: esta regla hace valer el atributo hidden por encima
+   del display:flex de las tarjetas. Sin ella, las seis pantallas se apilan. */
+[hidden]{display:none!important}
+
+/* Diseño: una sola columna centrada (máx. 560 px), pensada primero para celular.
+   Fondo de cuadrícula tipo cuaderno; cada familia de operaciones tiene su propio color. */
+:root{
+  --bg:#EDF1F5; --sup:#FFFFFF; --tinta:#17212B; --suave:#56687A; --linea:#D2DCE6;
+  --adn:#1356A0; --arn:#6235C0; --codon:#A2640B; --prot:#0C6B63;
+  --ok:#15804A; --mal:#BD2638;
+  --cuadro:rgba(23,33,43,.06); --sombra:rgba(23,33,43,.10);
+  --acento:var(--adn);
+  --r:14px;
+  --display:"Fredoka",ui-rounded,system-ui,sans-serif;
+  --texto:"Nunito",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#111A20; --sup:#1A252C; --tinta:#E8F0F4; --suave:#93A7B3; --linea:#2B3A44;
+    --adn:#6FBBF5; --arn:#B79BF5; --codon:#F0B04A; --prot:#45D3C3;
+    --ok:#45CE8C; --mal:#FF8793;
+    --cuadro:rgba(232,240,244,.05); --sombra:rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111A20; --sup:#1A252C; --tinta:#E8F0F4; --suave:#93A7B3; --linea:#2B3A44;
+  --adn:#6FBBF5; --arn:#B79BF5; --codon:#F0B04A; --prot:#45D3C3;
+  --ok:#45CE8C; --mal:#FF8793;
+  --cuadro:rgba(232,240,244,.05); --sombra:rgba(0,0,0,.35);
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--tinta);
+  font-family:var(--texto); font-size:16px; line-height:1.5;
+  background-image:linear-gradient(var(--cuadro) 1px,transparent 1px),linear-gradient(90deg,var(--cuadro) 1px,transparent 1px);
+  background-size:26px 26px;
+}
+.envoltura{max-width:560px; margin:0 auto; padding-inline:16px; padding-block:18px 36px; display:flex; flex-direction:column; gap:16px}
+h1,h2,h3{font-family:var(--display); font-weight:600; margin:0; text-wrap:balance; line-height:1.2}
+h1{font-size:1.9rem; letter-spacing:-.01em}
+h2{font-size:1.25rem}
+h3{font-size:1rem}
+p{margin:0}
+.silencio{color:var(--suave); font-size:.9rem}
+.tarjeta{background:var(--sup); border:1px solid var(--linea); border-radius:var(--r); padding:18px; display:flex; flex-direction:column; gap:14px}
+.volver-sitio{font-family:var(--texto); font-weight:600; font-size:.88rem; color:var(--suave);
+  text-decoration:none; align-self:flex-start; margin-bottom:-8px}
+.volver-sitio:hover{color:var(--tinta)}
+.marca{display:flex; align-items:baseline; gap:11px; flex-wrap:wrap}
+.marca img{width:48px; height:48px; border-radius:11px; background:#fff; padding:2px; flex:0 0 auto; align-self:center}
+.marca span{font-family:var(--display); font-size:.78rem; letter-spacing:.12em; text-transform:uppercase; color:var(--suave)}
+
+/* --- botones --- */
+button{font-family:var(--texto); font-size:1rem; cursor:pointer; border-radius:12px; border:1px solid transparent; padding:12px 16px; transition:transform .12s ease, filter .12s ease}
+button:active{transform:translateY(1px)}
+button:focus-visible{outline:3px solid var(--acento); outline-offset:2px}
+.b-principal{background:var(--acento); color:#fff; font-weight:700; border:none}
+:root[data-theme="dark"] .b-principal{color:#0E1519}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .b-principal{color:#0E1519} }
+.b-suave{background:transparent; color:var(--tinta); border:1px solid var(--linea); font-weight:600}
+.b-suave:hover{border-color:var(--acento); color:var(--acento)}
+.fila{display:flex; gap:10px; flex-wrap:wrap}
+.fila>button{flex:1 1 auto; min-width:0}
+
+/* --- barra superior del juego --- */
+.hud{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:space-between}
+.chip{font-family:var(--display); font-size:.82rem; padding:5px 11px; border-radius:999px; background:color-mix(in srgb,var(--acento) 14%,transparent); color:var(--acento); border:1px solid color-mix(in srgb,var(--acento) 35%,transparent); white-space:nowrap}
+.dato{font-variant-numeric:tabular-nums; font-family:var(--display); font-size:.95rem; color:var(--suave)}
+.dato b{color:var(--tinta); font-size:1.15rem}
+.barra{height:8px; border-radius:99px; background:var(--linea); overflow:hidden}
+.barra i{display:block; height:100%; width:0; background:var(--acento); border-radius:99px; transition:width .35s ease}
+
+/* --- operación --- */
+.operacion{font-family:var(--display); font-weight:600; font-variant-numeric:tabular-nums; text-align:center; font-size:clamp(2.4rem,13vw,3.4rem); line-height:1.1; padding:10px 0; letter-spacing:.02em}
+.contexto{background:color-mix(in srgb,var(--acento) 9%,transparent); border-left:4px solid var(--acento); border-radius:0 10px 10px 0; padding:12px 14px; font-size:.97rem}
+.fichas{display:flex; flex-wrap:wrap; gap:14px; justify-content:center; padding-bottom:4px}
+.grupo{display:flex; flex-wrap:wrap; gap:5px; max-width:48%; justify-content:center}
+.ficha{width:17px; height:17px; border-radius:50%; background:var(--acento)}
+.grupo.b .ficha{background:color-mix(in srgb,var(--acento) 45%,var(--linea))}
+
+/* --- respuestas --- */
+.opciones{display:grid; grid-template-columns:repeat(2,1fr); gap:10px}
+.opciones button{font-family:var(--display); font-size:1.5rem; font-variant-numeric:tabular-nums; background:var(--sup); border:2px solid var(--linea); color:var(--tinta); padding:16px 8px}
+.opciones button:hover:not(:disabled){border-color:var(--acento)}
+.opciones button:disabled{cursor:default; opacity:.55}
+.opciones button.buena::after{content:" ✓"; font-weight:700}
+.opciones button.mala::after{content:" ✗"; font-weight:700}
+.opciones button.buena{border-color:var(--ok); background:color-mix(in srgb,var(--ok) 16%,var(--sup)); color:var(--ok); opacity:1}
+.opciones button.mala{border-color:var(--mal); background:color-mix(in srgb,var(--mal) 14%,var(--sup)); color:var(--mal); opacity:1}
+.casillas{display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
+.casilla{display:flex; flex-direction:column; align-items:center; gap:5px; min-width:0}
+.casilla label{font-size:.78rem; letter-spacing:.1em; text-transform:uppercase; color:var(--suave); font-family:var(--display)}
+.casilla input{width:120px; max-width:38vw; text-align:center; font-family:var(--display); font-size:2rem; font-variant-numeric:tabular-nums; padding:8px 6px; border-radius:12px; border:2px solid var(--linea); background:var(--bg); color:var(--tinta)}
+.casilla input:focus{outline:none; border-color:var(--acento)}
+.casilla input.activa{border-color:var(--acento)}
+.teclado{display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
+.teclado button{font-family:var(--display); font-size:1.35rem; background:var(--sup); border:1px solid var(--linea); color:var(--tinta); padding:14px 0}
+.teclado button:hover{border-color:var(--acento)}
+.teclado .ancho{grid-column:span 2}
+
+/* --- retroalimentación --- */
+.aviso{border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:9px; animation:entra .25s ease}
+.aviso.bien{background:color-mix(in srgb,var(--ok) 13%,transparent); border:1px solid color-mix(in srgb,var(--ok) 40%,transparent)}
+.aviso.mal{background:color-mix(in srgb,var(--mal) 12%,transparent); border:1px solid color-mix(in srgb,var(--mal) 38%,transparent)}
+.aviso h3{font-size:1.05rem}
+.aviso.bien h3{color:var(--ok)} .aviso.mal h3{color:var(--mal)}
+.pasos{margin:0; padding-left:20px; display:flex; flex-direction:column; gap:5px; font-size:.95rem}
+.pasos li::marker{color:var(--acento); font-weight:700}
+@keyframes entra{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+
+/* --- mapa de niveles --- */
+.niveles{display:flex; flex-direction:column; gap:8px}
+.nivel{display:flex; align-items:center; gap:12px; text-align:left; width:100%; background:var(--sup); border:1px solid var(--linea); border-radius:12px; padding:11px 14px; color:var(--tinta)}
+.nivel:disabled{opacity:.45; cursor:default}
+.nivel .num{flex:0 0 34px; height:34px; display:grid; place-items:center; border-radius:10px; font-family:var(--display); font-weight:600; background:color-mix(in srgb,var(--c) 15%,transparent); color:var(--c); border:1px solid color-mix(in srgb,var(--c) 35%,transparent)}
+.nivel .txt{flex:1 1 auto; min-width:0}
+.nivel .txt b{display:block; font-family:var(--display); font-weight:600; font-size:.98rem}
+.nivel .txt span{font-size:.84rem; color:var(--suave)}
+.nivel .est{flex:0 0 auto; font-size:.78rem; font-family:var(--display); color:var(--suave)}
+.nivel.hecho .est{color:var(--ok)}
+
+/* --- tabla de puntuaciones --- */
+table{width:100%; border-collapse:collapse; font-size:.88rem; font-variant-numeric:tabular-nums}
+th,td{text-align:left; padding:7px 6px; border-bottom:1px solid var(--linea)}
+th{font-family:var(--display); font-weight:600; font-size:.74rem; letter-spacing:.08em; text-transform:uppercase; color:var(--suave)}
+td.n{text-align:right}
+.scroll{overflow-x:auto}
+textarea{width:100%; box-sizing:border-box; min-height:110px; font-family:ui-monospace,monospace; font-size:.8rem; border-radius:10px; border:1px solid var(--linea); background:var(--bg); color:var(--tinta); padding:10px; resize:vertical}
+input[type=text]{font-family:var(--texto); font-size:1rem; padding:11px 13px; border-radius:11px; border:1px solid var(--linea); background:var(--bg); color:var(--tinta); width:100%; box-sizing:border-box}
+input[type=text]:focus{outline:none; border-color:var(--acento)}
+label.campo{display:flex; flex-direction:column; gap:5px; font-size:.84rem; color:var(--suave); font-weight:600}
+.pie{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; font-size:.82rem; color:var(--suave)}
+.puntazo{font-family:var(--display); font-size:3rem; font-variant-numeric:tabular-nums; line-height:1; color:var(--acento)}
+
+/* --- créditos al pie --- */
+.creditos{display:flex; align-items:center; gap:12px; flex-wrap:nowrap;
+  padding-top:14px; margin-top:2px; border-top:1px solid var(--linea); text-align:left}
+.creditos img{width:54px; height:auto; flex:0 0 auto; background:#fff; border-radius:7px; padding:3px}
+.creditos .texto{flex:1 1 0; min-width:0}
+.creditos .cole{font-family:var(--display); font-weight:600; font-size:.92rem; color:var(--tinta); display:block; line-height:1.25}
+.creditos .evento{font-size:.78rem; color:var(--suave); display:block; line-height:1.4}
+.creditos .autor{font-size:.78rem; color:var(--suave); display:block; line-height:1.4}
+.creditos .autor b{color:var(--tinta); font-weight:700}
+</style>
+<style>
+/* Ajustes propios de CodónLab */
+.cadena{font-family:"DejaVu Sans Mono",ui-monospace,monospace; font-weight:700; letter-spacing:.16em;
+  text-align:center; font-size:clamp(1.3rem,6.6vw,1.9rem); word-break:break-all; line-height:1.5}
+.cadena .cod{display:inline-block; padding:2px 5px; border-radius:6px; margin:2px 3px;
+  background:color-mix(in srgb,var(--acento) 16%,transparent)}
+.etiq{font-family:var(--display); font-size:.74rem; letter-spacing:.11em; text-transform:uppercase;
+  color:var(--suave); text-align:center; display:block; margin-bottom:-4px}
+.teclado.bases{grid-template-columns:repeat(4,1fr)}
+.tabla-codigo{max-height:270px; overflow:auto; border:1px solid var(--linea); border-radius:10px; padding:10px}
+.tabla-codigo table{width:100%; border-collapse:collapse; font-size:.82rem}
+.tabla-codigo td{padding:3px 6px; border-bottom:1px solid var(--linea)}
+.tabla-codigo td:first-child{font-family:"DejaVu Sans Mono",monospace; font-weight:700; color:var(--acento); width:4.6em}
+.pareja{display:flex; flex-direction:column; gap:3px; align-items:center}
+/* El botón de enviar dentro del teclado conserva el color de acento */
+.teclado button.b-principal{background:var(--acento); border-color:transparent; color:#fff}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .teclado button.b-principal{color:#0E1519} }
+:root[data-theme="dark"] .teclado button.b-principal{color:#0E1519}
+
+</style>
+</head>
+<body>
+<div class="envoltura">
+
+  <a id="b-volver-sitio" class="volver-sitio" href="#" hidden>‹ Volver a ÉPICA24</a>
+
+  <div class="marca">
+    <img src="data:image/jpeg;base64,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" alt="" width="200" height="200">
+    <h1>CodónLab</h1>
+    <span>Del ADN a la proteína</span>
+  </div>
+
+  <section id="p-inicio" class="tarjeta">
+    <h2>¿Quién va a jugar?</h2>
+    <p class="silencio">Escribe tu nombre, o un apodo si prefieres, y tu grado. El juego guarda tu avance en este dispositivo, así que puedes seguir después donde ibas.</p>
+    <label class="campo">Nombre o apodo<input type="text" id="in-nombre" autocomplete="off" placeholder="Ej.: Luisa Fernanda"></label>
+    <label class="campo">Grado o grupo<input type="text" id="in-grado" autocomplete="off" placeholder="Ej.: 9-03"></label>
+    <p id="aviso-inicio" class="silencio" hidden style="color:var(--mal)">Escribe tu nombre y tu grado para empezar.</p>
+    <button class="b-principal" id="b-entrar">Empezar a jugar</button>
+    <div class="pie">
+      <button class="b-suave" id="b-ver-docente">Panel del docente</button>
+      <button class="b-suave" id="b-sonido">Sonido: activado</button>
+    </div>
+  </section>
+
+  <section id="p-mapa" class="tarjeta" hidden>
+    <div class="hud">
+      <h2 id="saludo">Hola</h2>
+      <div class="dato">Puntaje <b id="m-puntaje">0</b></div>
+    </div>
+    <p class="silencio" id="m-regla"></p>
+    <div class="niveles" id="lista-niveles"></div>
+    <div class="pie">
+      <button class="b-suave" id="b-salir">Cambiar de jugador</button>
+      <button class="b-suave" id="b-repaso" hidden>Repaso mezclado</button>
+      <button class="b-suave" id="b-docente2">Panel del docente</button>
+    </div>
+  </section>
+
+  <section id="p-explica" class="tarjeta" hidden>
+    <span class="chip" id="e-chip">Nivel 1</span>
+    <h2 id="e-titulo"></h2>
+    <div id="e-concepto"></div>
+    <div class="aviso bien" style="background:color-mix(in srgb,var(--acento) 10%,transparent); border-color:color-mix(in srgb,var(--acento) 35%,transparent)">
+      <h3 style="color:var(--acento)">Ejemplo resuelto</h3>
+      <div id="e-ejemplo"></div>
+    </div>
+    <div class="fila">
+      <button class="b-suave" id="b-volver-mapa">Volver</button>
+      <button class="b-principal" id="b-jugar">¡Vamos!</button>
+    </div>
+  </section>
+
+  <section id="p-juego" class="tarjeta" hidden>
+    <div class="hud">
+      <span class="chip" id="j-chip">Nivel 1</span>
+      <div class="dato">Pregunta <b id="j-num">1</b>/<span id="j-total">5</span></div>
+      <div class="dato">Puntos <b id="j-puntos">0</b></div>
+      <div class="dato" id="j-racha" hidden>Racha <b>0</b></div>
+    </div>
+    <div class="barra"><i id="j-barra"></i></div>
+
+    <div id="j-contexto" class="contexto" hidden></div>
+    <div id="j-muestra" hidden></div>
+    <div class="operacion" id="j-operacion" style="font-size:clamp(1.05rem,4.8vw,1.35rem); line-height:1.4"></div>
+
+    <div id="j-opciones" class="opciones" hidden></div>
+
+    <div id="j-escribir" hidden>
+      <div class="casillas" id="j-casillas"></div>
+      <div class="teclado bases" id="j-teclado" style="margin-top:12px"></div>
+    </div>
+
+    <button class="b-suave" id="b-ayuda" hidden>Ver la tabla del código genético</button>
+    <div id="j-tabla" class="tabla-codigo" hidden></div>
+
+    <div id="j-aviso"></div>
+    <button class="b-principal" id="b-seguir" hidden>Continuar</button>
+    <div class="pie"><button class="b-suave" id="b-abandonar">Salir del nivel</button></div>
+  </section>
+
+  <section id="p-fin" class="tarjeta" hidden>
+    <h2 id="f-titulo"></h2>
+    <div class="puntazo" id="f-aciertos"></div>
+    <p id="f-texto"></p>
+    <div class="scroll"><table>
+      <tbody>
+        <tr><th>Aciertos a la primera</th><td class="n" id="f-ok"></td></tr>
+        <tr><th>Errores</th><td class="n" id="f-err"></td></tr>
+        <tr><th>Puntos del nivel</th><td class="n" id="f-pts"></td></tr>
+        <tr><th>Tiempo</th><td class="n" id="f-tiempo"></td></tr>
+      </tbody>
+    </table></div>
+    <div class="fila">
+      <button class="b-suave" id="b-repetir">Repetir nivel</button>
+      <button class="b-principal" id="b-continuar">Continuar</button>
+    </div>
+  </section>
+
+  <section id="p-docente" class="tarjeta" hidden>
+    <h2>Panel del docente</h2>
+    <p class="silencio">Resultados guardados en este dispositivo. Para pasarlos a otro lado, copia el resumen o la planilla y pégalos en WhatsApp, en un correo o en una hoja de cálculo.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Jugador</th><th>Grado</th><th class="n">Nivel</th><th class="n">Puntos</th><th class="n">Aciertos</th></tr></thead>
+        <tbody id="d-tabla"></tbody>
+      </table>
+    </div>
+    <div class="fila">
+      <button class="b-suave" id="b-copiar-resumen">Copiar resumen</button>
+      <button class="b-suave" id="b-copiar-csv">Copiar planilla (CSV)</button>
+      <button class="b-suave" id="b-bajar-csv">Descargar CSV</button>
+    </div>
+    <textarea id="d-texto" readonly hidden aria-label="Resultados para copiar"></textarea>
+    <p id="d-aviso" class="silencio" hidden></p>
+    <div class="pie">
+      <button class="b-suave" id="b-reiniciar" style="color:var(--mal); border-color:color-mix(in srgb,var(--mal) 40%,transparent)">Borrar todos los resultados</button>
+      <button class="b-suave" id="b-cerrar-docente">Volver</button>
+    </div>
+    <div id="d-confirma" class="aviso mal" hidden>
+      <h3>¿Seguro que quieres borrar todo?</h3>
+      <p>Se perderán los resultados de todos los jugadores guardados en este dispositivo. Esta acción no se puede deshacer.</p>
+      <div class="fila">
+        <button class="b-suave" id="b-no">No, cancelar</button>
+        <button class="b-suave" id="b-si" style="color:var(--mal); border-color:var(--mal)">Sí, borrar todo</button>
+      </div>
+    </div>
+  </section>
+
+<footer class="creditos">
+    <img src="data:image/png;base64,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" alt="Escudo de la Institución Educativa 24 de Mayo" width="200" height="168">
+    <div class="texto">
+      <span class="cole">Institución Educativa 24 de Mayo</span>
+      <span class="evento">Feria de la Ciencia, la Tecnología y la Creatividad · 2026</span>
+      <span class="autor">Juego generado con el prompt diseñado por <b>Jesús David Galarcio Noguera</b>, docente asesor del proyecto.</span>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   CodónLab — juego generado con el prompt del proyecto de feria.
+   Genética de grado noveno: del ADN a la proteína.
+   Todos los ejercicios se generan por código a partir de la tabla
+   del código genético, así que nunca se repiten iguales.
+   ============================================================ */
+
+const $ = (id) => document.getElementById(id);
+const az = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+const revuelve = (v) => v.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(p => p[1]);
+const alAzar = (v) => v[az(0, v.length - 1)];
+
+function opciones(correcta, malas) {
+  const vistos = new Set([correcta]);
+  const lista = [correcta];
+  for (const m of malas) {
+    if (lista.length >= 4) break;
+    if (m !== null && m !== undefined && m !== "" && !vistos.has(m)) { vistos.add(m); lista.push(m); }
+  }
+  return revuelve(lista);
+}
+
+/* ---------- la tabla del código genético ----------
+   Cada codón de ARN mensajero se traduce en un aminoácido.
+   Tres codones no codifican aminoácido: son las señales de parada. */
+const CODIGO = {
+  UUU:"fenilalanina", UUC:"fenilalanina", UUA:"leucina",      UUG:"leucina",
+  CUU:"leucina",      CUC:"leucina",      CUA:"leucina",      CUG:"leucina",
+  AUU:"isoleucina",   AUC:"isoleucina",   AUA:"isoleucina",   AUG:"metionina",
+  GUU:"valina",       GUC:"valina",       GUA:"valina",       GUG:"valina",
+  UCU:"serina",       UCC:"serina",       UCA:"serina",       UCG:"serina",
+  CCU:"prolina",      CCC:"prolina",      CCA:"prolina",      CCG:"prolina",
+  ACU:"treonina",     ACC:"treonina",     ACA:"treonina",     ACG:"treonina",
+  GCU:"alanina",      GCC:"alanina",      GCA:"alanina",      GCG:"alanina",
+  UAU:"tirosina",     UAC:"tirosina",     UAA:"PARADA",       UAG:"PARADA",
+  CAU:"histidina",    CAC:"histidina",    CAA:"glutamina",    CAG:"glutamina",
+  AAU:"asparagina",   AAC:"asparagina",   AAA:"lisina",       AAG:"lisina",
+  GAU:"ácido aspártico", GAC:"ácido aspártico", GAA:"ácido glutámico", GAG:"ácido glutámico",
+  UGU:"cisteína",     UGC:"cisteína",     UGA:"PARADA",       UGG:"triptófano",
+  CGU:"arginina",     CGC:"arginina",     CGA:"arginina",     CGG:"arginina",
+  AGU:"serina",       AGC:"serina",       AGA:"arginina",     AGG:"arginina",
+  GGU:"glicina",      GGC:"glicina",      GGA:"glicina",      GGG:"glicina"
+};
+const PARADAS = ["UAA", "UAG", "UGA"];
+const AMINOACIDOS = [...new Set(Object.values(CODIGO))].filter(a => a !== "PARADA");
+const CODONES_AA = Object.keys(CODIGO).filter(c => CODIGO[c] !== "PARADA");
+
+/* Emparejamientos de bases */
+const COMPL_ADN = { A:"T", T:"A", C:"G", G:"C" };   // ADN con ADN
+const ADN_A_ARN = { A:"U", T:"A", C:"G", G:"C" };   // la hebra molde de ADN se transcribe a ARN
+const COMPL_ARN = { A:"U", U:"A", C:"G", G:"C" };   // codón con anticodón
+
+const cadenaADN = (n) => Array.from({length:n}, () => alAzar(["A","T","C","G"])).join("");
+const traduce = (c, mapa) => [...c].map(b => mapa[b]).join("");
+
+/* ---------- almacenamiento ---------- */
+const CLAVE = "codonlab.v1";
+let bd = { registros: [], mudo: false };
+function cargar() {
+  try {
+    const crudo = localStorage.getItem(CLAVE);
+    if (crudo) { const d = JSON.parse(crudo); if (d && Array.isArray(d.registros)) bd = { registros:d.registros, mudo:!!d.mudo }; }
+  } catch (e) { /* almacenamiento bloqueado: el juego funciona igual */ }
+}
+function guardar() { try { localStorage.setItem(CLAVE, JSON.stringify(bd)); } catch (e) {} }
+
+/* ---------- sonido ---------- */
+let audio = null;
+function pito(frecuencias, dur) {
+  if (bd.mudo) return;
+  try {
+    if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+    frecuencias.forEach((f, i) => {
+      const osc = audio.createOscillator(), vol = audio.createGain();
+      osc.type = "sine"; osc.frequency.value = f;
+      const t = audio.currentTime + i * dur;
+      vol.gain.setValueAtTime(0.0001, t);
+      vol.gain.exponentialRampToValueAtTime(0.18, t + 0.02);
+      vol.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.connect(vol); vol.connect(audio.destination);
+      osc.start(t); osc.stop(t + dur + 0.02);
+    });
+  } catch (e) {}
+}
+const sonBien = () => pito([660, 880], 0.12);
+const sonMal  = () => pito([240, 180], 0.16);
+const sonNivel = () => pito([523, 659, 784, 1047], 0.13);
+
+/* ============================================================
+   LOS 8 NIVELES, de lo más fácil a lo más difícil
+   ============================================================ */
+const NIVELES = [
+
+  { /* 1 */ titulo:"El ADN y sus bases", resumen:"Emparejamiento complementario", familia:"adn", teclas:["A","T","C","G"],
+    concepto:`<p>El ADN tiene dos cadenas enfrentadas. Las bases siempre se emparejan igual: la <b>A</b> con la <b>T</b> y la <b>C</b> con la <b>G</b>.</p><p>Por eso, si conoces una cadena, puedes deducir la otra.</p>`,
+    ejemplo:`<p>Cadena original: <b>A T G C</b></p><p>La A se empareja con T, la T con A, la G con C y la C con G.</p><p>Cadena complementaria: <b>T A C G</b></p>`,
+    gen() {
+      const c = cadenaADN(az(4, 6)), r = traduce(c, COMPL_ADN);
+      return { etiqueta:"Cadena de ADN", muestra:c, texto:"Escribe la cadena de ADN complementaria.",
+        resp:[r], tipo:"cadena",
+        clave:`La A va con T y la C con G, siempre.`,
+        pasos:[...c].map((b,i) => `${b} se empareja con ${COMPL_ADN[b]}`).concat([`Cadena complementaria: ${r}`]) };
+    }
+  },
+
+  { /* 2 */ titulo:"Del ADN al ARN", resumen:"Las tres diferencias", familia:"arn", teclas:null,
+    concepto:`<p>El ARN se parece al ADN, pero cambia en tres cosas: tiene <b>una sola cadena</b>, su azúcar es la <b>ribosa</b> y, en lugar de timina, lleva <b>uracilo (U)</b>.</p><p>También cambia el lugar: la <b>transcripción</b> (de ADN a ARN) pasa en el <b>núcleo</b>, y la <b>traducción</b> (de ARN a proteína) pasa en el <b>ribosoma</b>.</p>`,
+    ejemplo:`<p>¿Qué base del ARN ocupa el lugar de la timina del ADN?</p><p>El ADN usa A, T, C y G. El ARN usa A, <b>U</b>, C y G.</p><p>Respuesta: el <b>uracilo (U)</b>.</p>`,
+    gen() {
+      const banco = [
+        ["¿Qué base del ARN ocupa el lugar de la timina del ADN?", "El uracilo (U)", ["La adenina (A)","La citosina (C)","La guanina (G)"], "El ARN no tiene timina: en su lugar lleva uracilo."],
+        ["¿Cuántas cadenas tiene el ARN mensajero?", "Una sola", ["Dos","Tres","Depende del gen"], "El ADN tiene dos cadenas; el ARN mensajero, una sola."],
+        ["¿Qué azúcar lleva el ARN?", "Ribosa", ["Desoxirribosa","Glucosa","Sacarosa"], "De ahí viene su nombre: ácido ribonucleico."],
+        ["¿Cuál de estas bases NO aparece nunca en el ARN?", "Timina", ["Uracilo","Adenina","Guanina"], "La timina es exclusiva del ADN."],
+        ["¿Dónde ocurre la transcripción?", "En el núcleo", ["En el ribosoma","En la membrana celular","En la mitocondria"], "La transcripción copia el ADN en ARN y pasa en el núcleo."],
+        ["¿Dónde ocurre la traducción?", "En el ribosoma", ["En el núcleo","En el ADN","En la membrana celular"], "El ribosoma lee el ARN mensajero y arma la proteína."],
+        ["La transcripción va…", "de ADN a ARN mensajero", ["de ARN mensajero a proteína","de proteína a ADN","de ARN a ADN"], "Transcribir es copiar el mensaje en un lenguaje parecido."],
+        ["La traducción va…", "de ARN mensajero a proteína", ["de ADN a ARN mensajero","de proteína a ARN","de ADN a proteína, directamente"], "Traducir es pasar del lenguaje de las bases al de los aminoácidos."],
+        ["¿Qué molécula lleva el mensaje del núcleo al ribosoma?", "El ARN mensajero", ["El ADN","El ARN de transferencia","La proteína"], "El ADN no sale del núcleo: manda una copia en ARN mensajero."],
+        ["¿Cómo se llama el proceso que copia el ADN en ARN mensajero?", "Transcripción", ["Traducción","Respiración","Fotosíntesis"], "Copiar el ADN en ARN se llama transcripción."],
+        ["¿Cómo se llama el proceso que arma la proteína?", "Traducción", ["Transcripción","Digestión","Mitosis"], "Armar la proteína a partir del ARN se llama traducción."],
+        ["¿Qué significa la sigla ADN?", "Ácido desoxirribonucleico", ["Ácido ribonucleico","Aminoácido nuclear","Azúcar de nucleótido"], "ADN viene de ácido desoxirribonucleico."],
+        ["¿Qué significa la sigla ARN?", "Ácido ribonucleico", ["Ácido desoxirribonucleico","Aminoácido ribosomal","Azúcar ribonuclear"], "ARN viene de ácido ribonucleico, por la ribosa."],
+        ["En el ADN, ¿con qué base se empareja la adenina?", "Con la timina", ["Con el uracilo","Con la citosina","Con la guanina"], "En el ADN, A va con T."],
+        ["En el ARN, ¿con qué base se empareja la adenina?", "Con el uracilo", ["Con la timina","Con la citosina","Con la guanina"], "En el ARN no hay timina: la A va con U."],
+        ["En el ADN y en el ARN, ¿con qué base se empareja la citosina?", "Con la guanina", ["Con la adenina","Con la timina","Con el uracilo"], "La C va siempre con la G, en los dos."],
+        ["¿Qué molécula trae los aminoácidos hasta el ribosoma?", "El ARN de transferencia", ["El ARN mensajero","El ADN","El núcleo"], "El ARN de transferencia es el que carga los aminoácidos."],
+        ["¿De qué están hechas las proteínas?", "De aminoácidos", ["De bases nitrogenadas","De azúcares","De codones"], "Los codones son del ARN; la proteína es una cadena de aminoácidos."]
+      ];
+      const [p, buena, malas, clave] = alAzar(banco);
+      return { texto:p, resp:[buena], tipo:"opciones", ops:opciones(buena, malas), clave,
+        pasos:[clave, `La respuesta correcta es: ${buena}.`] };
+    }
+  },
+
+  { /* 3 */ titulo:"Transcripción", resumen:"De la hebra de ADN al ARN", familia:"arn", teclas:["A","U","C","G"],
+    concepto:`<p>En el núcleo, una hebra de ADN sirve de molde para fabricar ARN mensajero.</p><p>Las reglas son las mismas de antes, con un cambio: donde el ADN tiene <b>A</b>, el ARN pone <b>U</b>, porque el ARN no usa timina.</p><p>A→U · T→A · C→G · G→C</p>`,
+    ejemplo:`<p>Hebra molde de ADN: <b>A T G C</b></p><p>A pasa a U, T pasa a A, G pasa a C y C pasa a G.</p><p>ARN mensajero: <b>U A C G</b></p>`,
+    gen() {
+      const c = cadenaADN(az(4, 6)), r = traduce(c, ADN_A_ARN);
+      return { etiqueta:"Hebra molde de ADN", muestra:c, texto:"Escribe el ARN mensajero que se transcribe.",
+        resp:[r], tipo:"cadena",
+        clave:`Recuerda que en el ARN no hay timina: la A del ADN se copia como U.`,
+        pasos:[...c].map(b => `${b} del ADN se transcribe como ${ADN_A_ARN[b]}`).concat([`ARN mensajero: ${r}`]) };
+    }
+  },
+
+  { /* 4 */ titulo:"Leer en codones", resumen:"El marco de lectura", familia:"codon", teclas:null,
+    concepto:`<p>El ribosoma no lee el ARN base por base: lo lee en grupos de <b>tres bases</b>, y cada grupo se llama <b>codón</b>.</p><p>La cuenta empieza en el codón de inicio, <b>AUG</b>. Si empiezas a contar en otro lugar, todos los codones salen corridos y la proteína queda mal. Eso se llama correr el <b>marco de lectura</b>.</p>`,
+    ejemplo:`<p>Cadena: <b>AUG CCU UAC</b></p><p>Separo de tres en tres desde el AUG: AUG · CCU · UAC.</p><p>El segundo codón es <b>CCU</b>, no UGC ni GCC, que serían empezar a contar corrido.</p>`,
+    gen() {
+      const n = az(4, 5);
+      const cods = ["AUG"]; for (let i = 1; i < n; i++) cods.push(alAzar(CODONES_AA));
+      const cadena = cods.join("");
+      if (Math.random() < 0.3) {
+        return { etiqueta:"ARN mensajero", muestra:cadena, texto:"¿Cuántos codones tiene esta cadena?",
+          resp:[String(n)], tipo:"opciones", ops:opciones(String(n), [String(n+1), String(n-1), String(cadena.length)]),
+          clave:`${cadena.length} bases divididas de tres en tres dan ${n} codones.`,
+          pasos:[`La cadena tiene ${cadena.length} bases.`, `Cada codón son 3 bases.`, `${cadena.length} ÷ 3 = ${n} codones.`] };
+      }
+      const k = az(2, n);
+      const bueno = cods[k - 1];
+      const corrido1 = cadena.substr((k-1)*3 - 1, 3), corrido2 = cadena.substr((k-1)*3 + 1, 3);
+      return { etiqueta:"ARN mensajero", muestra:cadena, texto:`¿Cuál es el codón número ${k}?`,
+        resp:[bueno], tipo:"opciones",
+        ops:opciones(bueno, [corrido1, corrido2, cods[k % n]].concat(revuelve(CODONES_AA).slice(0, 6))
+                              .filter(x => x && x.length === 3)),
+        clave:`Separando de tres en tres desde el AUG, el codón ${k} es ${bueno}.`,
+        pasos:[`Separo la cadena desde el inicio: ${cods.join(" · ")}`, `El codón número ${k} es ${bueno}.`,
+               `Si te dio otra cosa, empezaste a contar corrido y se te movió el marco de lectura.`] };
+    }
+  },
+
+  { /* 5 */ titulo:"Inicio y parada", resumen:"Dónde empieza y dónde termina", familia:"codon", teclas:null,
+    concepto:`<p>La proteína no se arma de corrido: tiene una señal de arranque y una de frenada.</p><p>El codón de inicio es siempre <b>AUG</b>, que además codifica el aminoácido metionina.</p><p>Los codones de parada son <b>UAA</b>, <b>UAG</b> y <b>UGA</b>. No codifican ningún aminoácido: solo indican que ahí termina.</p>`,
+    ejemplo:`<p>Cadena: <b>AUG GCU UAA CCU</b></p><p>Arranca en AUG, sigue con GCU y se detiene en UAA.</p><p>La proteína solo tiene <b>2 aminoácidos</b>: lo que viene después del UAA no se traduce.</p>`,
+    gen() {
+      const clase = az(1, 3);
+      if (clase === 1) {
+        const bueno = alAzar(PARADAS);
+        return { texto:"¿Cuál de estos codones indica PARADA?", resp:[bueno], tipo:"opciones",
+          ops:opciones(bueno, revuelve(CODONES_AA).slice(0, 3)),
+          clave:`Los codones de parada son UAA, UAG y UGA.`,
+          pasos:[`Solo hay tres codones de parada: UAA, UAG y UGA.`, `${bueno} es uno de ellos.`,
+                 `Los demás sí codifican aminoácidos.`] };
+      }
+      if (clase === 2) {
+        return { texto:"¿Cuál es el codón que da la señal de inicio?", resp:["AUG"], tipo:"opciones",
+          ops:opciones("AUG", ["UAA", "AUA", "UGA"]),
+          clave:`AUG arranca la traducción y además codifica metionina.`,
+          pasos:[`El codón de inicio es siempre AUG.`, `Ojo: AUA se parece, pero no es el de inicio.`,
+                 `UAA y UGA son de parada, justo lo contrario.`] };
+      }
+      const n = az(2, 3);
+      const cods = ["AUG"]; for (let i = 0; i < n; i++) cods.push(alAzar(CODONES_AA));
+      cods.push(alAzar(PARADAS), alAzar(CODONES_AA));
+      const cadena = cods.join(""), aa = n + 1;
+      return { etiqueta:"ARN mensajero", muestra:cadena, separar:true, texto:"¿Cuántos aminoácidos tendrá la proteína?",
+        resp:[String(aa)], tipo:"opciones", ops:opciones(String(aa), [String(aa+1), String(aa+2), String(aa-1)]),
+        clave:`Se cuentan los codones desde AUG hasta el de parada, sin incluirlo.`,
+        pasos:[`Separo: ${cods.join(" · ")}`, `La traducción arranca en AUG y se detiene en el codón de parada.`,
+               `Los codones que sí codifican aminoácido son ${aa}.`,
+               `El codón de parada no aporta aminoácido, y lo que sigue después no se traduce.`] };
+    }
+  },
+
+  { /* 6 */ titulo:"Traducción", resumen:"De codón a aminoácido", familia:"prot", teclas:null, ayuda:true,
+    concepto:`<p>En el ribosoma, cada codón del ARN mensajero se cambia por un aminoácido, siguiendo la <b>tabla del código genético</b>.</p><p>Varios codones distintos pueden dar el mismo aminoácido. Por eso se dice que el código es <b>redundante</b>.</p><p>Puedes consultar la tabla con el botón de ayuda.</p>`,
+    ejemplo:`<p>Codón: <b>GCU</b></p><p>Busco GCU en la tabla del código genético.</p><p>Corresponde a la <b>alanina</b>.</p>`,
+    gen() {
+      const c = alAzar(CODONES_AA), aa = CODIGO[c];
+      const otros = revuelve(AMINOACIDOS.filter(a => a !== aa)).slice(0, 3);
+      return { etiqueta:"Codón", muestra:c, texto:"¿Qué aminoácido corresponde a este codón?",
+        resp:[aa], tipo:"opciones", ops:opciones(aa, otros),
+        clave:`${c} codifica ${aa}.`,
+        pasos:[`Busco el codón ${c} en la tabla del código genético.`, `Le corresponde la ${aa}.`,
+               `Otros codones también dan ${aa}: ${CODONES_AA.filter(x => CODIGO[x] === aa).join(", ")}.`] };
+    }
+  },
+
+  { /* 7 */ titulo:"Codón y anticodón", resumen:"El ARN de transferencia", familia:"prot", teclas:["A","U","C","G"],
+    concepto:`<p>El codón está en el <b>ARN mensajero</b>. El <b>anticodón</b> está en el <b>ARN de transferencia</b>, que es el que trae el aminoácido hasta el ribosoma.</p><p>El anticodón es complementario del codón: A con U y C con G. Encajan como dos piezas.</p>`,
+    ejemplo:`<p>Codón del ARN mensajero: <b>G C U</b></p><p>G se empareja con C, C con G y U con A.</p><p>Anticodón del ARN de transferencia: <b>C G A</b></p>`,
+    gen() {
+      const c = alAzar(Object.keys(CODIGO)), r = traduce(c, COMPL_ARN);
+      return { etiqueta:"Codón del ARN mensajero", muestra:c, texto:"Escribe el anticodón que encaja con él.",
+        resp:[r], tipo:"cadena",
+        clave:`En el ARN, la A se empareja con U y la C con G.`,
+        pasos:[...c].map(b => `${b} se empareja con ${COMPL_ARN[b]}`).concat([`Anticodón: ${r}`,
+               `Recuerda: el codón va en el mensajero y el anticodón en el de transferencia.`]) };
+    }
+  },
+
+  { /* 8 */ titulo:"Mutaciones", resumen:"Qué pasa si cambia una base", familia:"prot", teclas:null, ayuda:true,
+    concepto:`<p>Una <b>mutación</b> es un cambio en una base del material genético. Como el codón cambia, hay que mirar en la tabla qué pasa con el aminoácido. Puede ocurrir una de tres cosas:</p><p><b>1.</b> El aminoácido <b>no cambia</b>, porque varios codones dan el mismo. La proteína queda igual. A esa mutación se le dice <i>silenciosa</i>.</p><p><b>2.</b> <b>Cambia el aminoácido</b>. La proteína queda distinta. Se le dice <i>de cambio de sentido</i>.</p><p><b>3.</b> Aparece un codón de <b>parada</b> y la proteína <b>se corta antes de tiempo</b>. Se le dice <i>sin sentido</i>.</p>`,
+    ejemplo:`<p>Codón original: <b>UCU</b>. Cambia a <b>UCC</b>.</p><p>Busco los dos en la tabla: UCU es serina y UCC también es serina.</p><p>Entonces <b>el aminoácido no cambia</b>, y la proteína queda igual. Esa mutación es silenciosa.</p>`,
+    gen() {
+      const bases = ["A","U","C","G"];
+      let orig, nuevo, intentos = 0;
+      do {
+        orig = alAzar(CODONES_AA);
+        const i = az(0, 2), b = alAzar(bases.filter(x => x !== orig[i]));
+        nuevo = orig.substring(0, i) + b + orig.substring(i + 1);
+        intentos++;
+      } while (nuevo === orig && intentos < 40);
+      const aaO = CODIGO[orig], aaN = CODIGO[nuevo];
+      const CORTA = "La proteína se corta antes de tiempo", IGUAL = "El aminoácido no cambia", CAMBIA = "Cambia el aminoácido";
+      const r = aaN === "PARADA" ? CORTA : (aaN === aaO ? IGUAL : CAMBIA);
+      const nombre = aaN === "PARADA" ? "sin sentido" : (aaN === aaO ? "silenciosa" : "de cambio de sentido");
+      return { etiqueta:"El codón cambia así", muestra:`${orig} → ${nuevo}`,
+        texto:"¿Qué le pasa a la proteína?", resp:[r], tipo:"opciones",
+        ops:revuelve([IGUAL, CAMBIA, CORTA]),
+        clave:`${orig} daba ${aaO} y ${nuevo} da ${aaN === "PARADA" ? "una señal de parada" : aaN}. Es una mutación ${nombre}.`,
+        pasos:[`Busco el codón original ${orig} en la tabla: codifica ${aaO}.`,
+               `Busco el codón mutado ${nuevo}: ${aaN === "PARADA" ? "es un codón de PARADA, no codifica ningún aminoácido" : "codifica " + aaN}.`,
+               aaN === "PARADA" ? `Como aparece una parada donde no iba, la proteína se corta antes de terminar.`
+                 : (aaN === aaO ? `Los dos codones dan el mismo aminoácido, así que la proteína queda igual.`
+                                : `Los dos codones dan aminoácidos distintos, así que la proteína queda distinta.`),
+               `A esa mutación se le dice ${nombre}.`] };
+    }
+  }
+];
+
+const COLOR = { adn:"var(--adn)", arn:"var(--arn)", codon:"var(--codon)", prot:"var(--prot)" };
+const PREGUNTAS = 5, META = 4;   // cinco preguntas por nivel; cuatro aciertos para pasar
+
+let reg = null, S = null;
+
+const PANTALLAS = ["p-inicio","p-mapa","p-explica","p-juego","p-fin","p-docente"];
+function ver(id) {
+  PANTALLAS.forEach(p => { $(p).hidden = (p !== id); });
+  window.scrollTo(0, 0);
+}
+function pintaAcento(f) { document.documentElement.style.setProperty("--acento", COLOR[f] || "var(--adn)"); }
+
+function buscaRegistro(nombre, grado) {
+  const llave = (nombre + "|" + grado).toLowerCase().trim();
+  return bd.registros.find(r => (r.nombre + "|" + r.grado).toLowerCase().trim() === llave) || null;
+}
+function nuevoRegistro(nombre, grado) {
+  const r = { nombre, grado, nivelMax:1, puntaje:0, aciertos:0, errores:0, segundos:0, fecha:hoy() };
+  bd.registros.push(r); guardar(); return r;
+}
+function hoy() {
+  const d = new Date();
+  return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
+}
+function reloj(seg) { return `${Math.floor(seg/60)} min ${String(seg%60).padStart(2,"0")} s`; }
+
+function pintaMapa() {
+  $("m-regla").textContent = `Cada nivel se apoya en el anterior. Para avanzar necesitas ${META} aciertos de ${PREGUNTAS}. Puedes repetir los niveles que ya ganaste.`;
+  $("saludo").textContent = "Hola, " + reg.nombre.split(" ")[0];
+  $("m-puntaje").textContent = reg.puntaje;
+  $("b-repaso").hidden = reg.nivelMax < 2;
+  pintaAcento(NIVELES[Math.min(reg.nivelMax, NIVELES.length) - 1].familia);
+  const cont = $("lista-niveles"); cont.innerHTML = "";
+  NIVELES.forEach((n, i) => {
+    const num = i + 1, abierto = num <= reg.nivelMax, hecho = num < reg.nivelMax;
+    const b = document.createElement("button");
+    b.className = "nivel" + (hecho ? " hecho" : "");
+    b.style.setProperty("--c", COLOR[n.familia]);
+    b.disabled = !abierto;
+    b.innerHTML = `<span class="num">${num}</span><span class="txt"><b>${n.titulo}</b><span>${n.resumen}</span></span><span class="est">${hecho ? "Superado" : abierto ? "Jugar" : "Cerrado"}</span>`;
+    b.addEventListener("click", () => explicar(num));
+    cont.appendChild(b);
+  });
+}
+
+let nivelPendiente = 1;
+function explicar(num) {
+  const n = NIVELES[num - 1];
+  nivelPendiente = num; pintaAcento(n.familia);
+  $("e-chip").textContent = "Nivel " + num;
+  $("e-titulo").textContent = n.titulo;
+  $("e-concepto").innerHTML = n.concepto;
+  $("e-ejemplo").innerHTML = n.ejemplo;
+  ver("p-explica");
+}
+
+function empezarNivel(num) {
+  pintaAcento(NIVELES[num - 1].familia);
+  S = { nivel:num, i:0, aciertos:0, errores:0, puntos:0, racha:0, refuerzo:0, q:null, t0:Date.now(), vistas:new Set(), total:PREGUNTAS, repaso:false };
+  $("j-chip").textContent = "Nivel " + num;
+  $("b-abandonar").textContent = "Salir del nivel";
+  ver("p-juego"); siguiente();
+}
+/* Repaso: 10 preguntas mezcladas de todos los niveles ya superados.
+   No desbloquea nada ni se puede perder; sirve para practicar con los temas
+   revueltos, que es como se afianza lo aprendido. */
+function empezarRepaso() {
+  $("b-abandonar").textContent = "Salir del repaso";
+  S = { repaso:true, hasta: Math.max(1, reg.nivelMax - 1), total: 10, nivel: 1,
+        i:0, aciertos:0, errores:0, puntos:0, racha:0, refuerzo:0, q:null,
+        t0: Date.now(), vistas: new Set() };
+  ver("p-juego"); siguiente();
+}
+
+function siguiente() {
+  S.refuerzo = 0; S.i++;
+  if (S.repaso && S.i <= S.total) {
+    // En el repaso, cada pregunta sale de un nivel distinto de los ya superados.
+    S.nivel = az(1, S.hasta);
+    pintaAcento(NIVELES[S.nivel - 1].familia);
+    $("j-chip").textContent = NIVELES[S.nivel - 1].titulo;
+  }
+  if (S.i > S.total) return terminarNivel();
+  nuevaPregunta(false);
+}
+
+function nuevaPregunta(esRefuerzo) {
+  const nivel = NIVELES[S.nivel - 1];
+  // Genero hasta dar con una pregunta que no haya salido ya en este nivel.
+  let q, firma, intentos = 0;
+  do {
+    q = nivel.gen();
+    firma = (q.texto || "") + "|" + (q.muestra || "") + "|" + q.resp.join(",");
+    intentos++;
+  } while (S.vistas.has(firma) && intentos < 60);
+  S.vistas.add(firma);
+  S.q = q;
+
+  $("j-total").textContent = S.total;
+  $("j-num").textContent = Math.min(S.i, S.total);
+  $("j-puntos").textContent = S.puntos;
+  $("j-barra").style.width = ((S.i - 1) / S.total * 100) + "%";
+  const chipRacha = $("j-racha");
+  chipRacha.hidden = S.racha < 3;
+  if (S.racha >= 3) chipRacha.innerHTML = `Racha <b>${S.racha}</b>`;
+
+  $("j-aviso").innerHTML = esRefuerzo ? `<p class="silencio">Intenta con uno parecido para afianzarlo.</p>` : "";
+  $("b-seguir").hidden = true;
+  $("j-contexto").hidden = true;
+  $("j-tabla").hidden = true;
+  $("b-ayuda").hidden = !nivel.ayuda;
+  $("b-ayuda").textContent = "Ver la tabla del código genético";
+
+  const mu = $("j-muestra");
+  if (q.muestra) {
+    mu.innerHTML = `<span class="etiq">${q.etiqueta || ""}</span><div class="cadena">${
+      q.separar
+        ? (q.muestra.match(/.{1,3}/g) || []).map(t => `<span class="cod">${t}</span>`).join("")
+        : q.muestra}</div>`;
+    mu.hidden = false;
+  } else mu.hidden = true;
+
+  $("j-operacion").textContent = q.texto;
+
+  if (q.tipo === "opciones") {
+    $("j-escribir").hidden = true;
+    const cont = $("j-opciones"); cont.hidden = false; cont.innerHTML = "";
+    const largo = q.ops.some(o => String(o).length > 12);
+    cont.style.gridTemplateColumns = largo ? "1fr" : "repeat(2,1fr)";
+    q.ops.forEach(v => {
+      const b = document.createElement("button");
+      b.textContent = v;
+      b.style.fontSize = largo ? "1rem" : "1.3rem";
+      b.addEventListener("click", () => responder([v], b));
+      cont.appendChild(b);
+    });
+  } else {
+    $("j-opciones").hidden = true;
+    $("j-escribir").hidden = false;
+    $("j-casillas").innerHTML = `<div class="casilla"><label for="c0">Tu respuesta</label>
+      <input id="c0" type="text" inputmode="text" autocomplete="off" maxlength="12"
+        style="width:200px; letter-spacing:.14em; font-family:'DejaVu Sans Mono',monospace" class="activa"></div>`;
+    const tec = $("j-teclado"); tec.innerHTML = "";
+    (nivel.teclas || []).forEach(t => {
+      const b = document.createElement("button");
+      b.textContent = t;
+      b.addEventListener("click", () => { const i = $("c0"); if (i.value.length < 12) i.value += t; });
+      tec.appendChild(b);
+    });
+    const borrar = document.createElement("button");
+    borrar.textContent = "←";
+    borrar.addEventListener("click", () => { const i = $("c0"); i.value = i.value.slice(0, -1); });
+    tec.appendChild(borrar);
+    const listo = document.createElement("button");
+    listo.textContent = "Listo"; listo.className = "b-principal"; listo.style.gridColumn = "span 3";
+    listo.addEventListener("click", enviarEscrito);
+    tec.appendChild(listo);
+    $("c0").addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); enviarEscrito(); } });
+  }
+}
+
+function enviarEscrito() {
+  const i = $("c0");
+  if (!i || i.value.trim() === "") { if (i) i.focus({ preventScroll:true }); return; }
+  responder([i.value.trim().toUpperCase()], null);
+}
+
+function responder(valores, boton) {
+  const q = S.q;
+  const norm = (x) => String(x).trim().toUpperCase();
+  const bien = q.resp.every((v, k) => norm(valores[k]) === norm(v));
+  const esRefuerzo = S.refuerzo > 0;
+
+  document.querySelectorAll("#j-opciones button").forEach(b => b.disabled = true);
+  const inp = $("c0"); if (inp) inp.disabled = true;
+  document.querySelectorAll("#j-teclado button").forEach(b => b.disabled = true);
+
+  if (q.tipo === "opciones") {
+    document.querySelectorAll("#j-opciones button").forEach(b => {
+      if (norm(b.textContent) === norm(q.resp[0])) b.classList.add("buena");
+    });
+    if (!bien && boton) boton.classList.add("mala");
+  }
+
+  if (bien) {
+    sonBien();
+    if (!esRefuerzo) {
+      S.aciertos++; S.racha++;
+      const suma = 10 + (S.racha >= 3 ? 5 : 0);
+      S.puntos += suma;
+      $("j-aviso").innerHTML = `<div class="aviso bien"><h3>¡Correcto! +${suma}${S.racha >= 3 ? " (racha de " + S.racha + ")" : ""}</h3><p>${q.clave}</p></div>`;
+    } else {
+      S.puntos += 2;
+      $("j-aviso").innerHTML = `<div class="aviso bien"><h3>¡Eso es! +2</h3><p>${q.clave} Ahora sigamos.</p></div>`;
+    }
+    $("j-puntos").textContent = S.puntos;
+    $("b-seguir").textContent = "Continuar";
+    $("b-seguir").onclick = siguiente;
+    $("b-seguir").hidden = false;
+  } else {
+    sonMal();
+    S.racha = 0;
+    if (!esRefuerzo) S.errores++;   // el error no resta puntos: ya cuesta la racha y el ejercicio de refuerzo
+    $("j-aviso").innerHTML = `<div class="aviso mal"><h3>Casi. La respuesta es ${q.resp.join(" ")}.</h3>
+      <p>Mira cómo se hace:</p><ol class="pasos">${q.pasos.map(p => `<li>${p}</li>`).join("")}</ol></div>`;
+    S.refuerzo++;
+    if (S.refuerzo <= 2 && !S.repaso) { $("b-seguir").textContent = "Intentar uno parecido"; $("b-seguir").onclick = () => nuevaPregunta(true); }
+    else { $("b-seguir").textContent = "Continuar"; $("b-seguir").onclick = siguiente; }
+    $("b-seguir").hidden = false;
+  }
+  $("j-barra").style.width = (S.i / S.total * 100) + "%";
+}
+
+function terminarNivel() {
+  const seg = Math.round((Date.now() - S.t0) / 1000);
+  if (S.repaso) {
+    reg.puntaje += S.puntos; reg.aciertos += S.aciertos; reg.errores += S.errores;
+    reg.segundos += seg; reg.fecha = hoy(); guardar();
+    $("f-titulo").textContent = "Repaso terminado";
+    $("f-aciertos").textContent = S.aciertos + " / " + S.total;
+    $("f-texto").textContent = "Preguntas mezcladas de los niveles que ya superaste. Aquí no se gana ni se pierde nivel: es solo para practicar.";
+    $("f-ok").textContent = S.aciertos; $("f-err").textContent = S.errores;
+    $("f-pts").textContent = S.puntos; $("f-tiempo").textContent = reloj(seg);
+    $("b-repetir").textContent = "Otro repaso";
+    $("b-repetir").onclick = empezarRepaso;
+    $("b-continuar").textContent = "Ir al mapa de niveles";
+    $("b-continuar").onclick = () => { pintaMapa(); ver("p-mapa"); };
+    return ver("p-fin");
+  }
+  const paso = S.aciertos >= META;
+  reg.puntaje += S.puntos; reg.aciertos += S.aciertos; reg.errores += S.errores;
+  reg.segundos += seg; reg.fecha = hoy();
+  if (paso && S.nivel === reg.nivelMax && reg.nivelMax < NIVELES.length) reg.nivelMax++;
+  guardar();
+  if (paso) sonNivel();
+  $("f-titulo").textContent = paso ? "¡Nivel superado!" : "Casi lo logras";
+  $("f-aciertos").textContent = S.aciertos + " / " + S.total;
+  $("f-texto").textContent = paso
+    ? (S.nivel < NIVELES.length ? "Ya puedes pasar al nivel " + (S.nivel + 1) + "." : "¡Terminaste los ocho niveles! Puedes repetir el que quieras para mejorar tu puntaje.")
+    : "Necesitas " + META + " aciertos de " + PREGUNTAS + " para avanzar. Repasa la explicación y vuelve a intentarlo: los ejercicios serán distintos.";
+  $("f-ok").textContent = S.aciertos; $("f-err").textContent = S.errores;
+  $("f-pts").textContent = S.puntos; $("f-tiempo").textContent = reloj(seg);
+  $("b-continuar").textContent = paso ? "Ir al mapa de niveles" : "Ver la explicación otra vez";
+  $("b-continuar").onclick = () => { if (paso) { pintaMapa(); ver("p-mapa"); } else explicar(S.nivel); };
+  $("b-repetir").textContent = "Repetir nivel";
+  $("b-repetir").onclick = () => empezarNivel(S.nivel);
+  ver("p-fin");
+}
+
+/* ---------- tabla de ayuda ---------- */
+function pintaTabla() {
+  const filas = Object.keys(CODIGO).sort().map(c =>
+    `<tr><td>${c}</td><td>${CODIGO[c] === "PARADA" ? "<b>PARADA</b>" : CODIGO[c]}</td></tr>`).join("");
+  $("j-tabla").innerHTML = `<table><tbody>${filas}</tbody></table>`;
+}
+
+/* ---------- panel del docente ---------- */
+function pintaDocente() {
+  const cuerpo = $("d-tabla"); cuerpo.innerHTML = "";
+  const orden = [...bd.registros].sort((a, b) => b.puntaje - a.puntaje);
+  if (!orden.length) cuerpo.innerHTML = `<tr><td colspan="5" class="silencio">Todavía no hay resultados en este dispositivo.</td></tr>`;
+  else orden.forEach(r => {
+    const f = document.createElement("tr");
+    f.innerHTML = `<td>${r.nombre}</td><td>${r.grado}</td><td class="n">${r.nivelMax}</td><td class="n">${r.puntaje}</td><td class="n">${r.aciertos}</td>`;
+    cuerpo.appendChild(f);
+  });
+  $("d-texto").hidden = true; $("d-aviso").hidden = true; $("d-confirma").hidden = true;
+}
+function textoResumen() {
+  if (!reg) return planilla();
+  return `CodónLab — resultados de ${reg.nombre} (${reg.grado})
+Nivel alcanzado: ${reg.nivelMax} de ${NIVELES.length}
+Puntaje acumulado: ${reg.puntaje}
+Aciertos: ${reg.aciertos} · Errores: ${reg.errores}
+Tiempo jugado: ${reloj(reg.segundos)}
+Última sesión: ${reg.fecha}`;
+}
+function planilla() {
+  const filas = [["Nombre","Grado","Nivel alcanzado","Puntaje","Aciertos","Errores","Minutos","Fecha"]];
+  bd.registros.forEach(r => filas.push([r.nombre, r.grado, r.nivelMax, r.puntaje, r.aciertos, r.errores, Math.round(r.segundos/60), r.fecha]));
+  return filas.map(f => f.map(c => `"${String(c).replace(/"/g,'""')}"`).join(";")).join("\n");
+}
+function copiar(texto, etiqueta) {
+  const caja = $("d-texto"), aviso = $("d-aviso");
+  caja.value = texto; caja.hidden = false; aviso.hidden = false;
+  const listo = () => { aviso.textContent = etiqueta + " copiado. Ya puedes pegarlo donde lo necesites."; };
+  const aMano = () => { aviso.textContent = "Selecciona el texto de abajo y cópialo a mano."; caja.focus(); caja.select(); };
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(texto).then(listo).catch(aMano);
+    else aMano();
+  } catch (e) { aMano(); }
+}
+function bajarCSV() {
+  const aviso = $("d-aviso"); aviso.hidden = false;
+  try {
+    const url = URL.createObjectURL(new Blob(["﻿" + planilla()], { type:"text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = "codonlab-resultados.csv";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    aviso.textContent = "Si la descarga no empezó, usa el botón de copiar: algunos visores bloquean las descargas.";
+  } catch (e) {
+    aviso.textContent = "Este visor no permite descargar. Usa el botón de copiar la planilla.";
+  }
+}
+
+/* ---------- eventos ---------- */
+$("b-entrar").addEventListener("click", () => {
+  const nombre = $("in-nombre").value.trim(), grado = $("in-grado").value.trim();
+  if (!nombre || !grado) { $("aviso-inicio").hidden = false; return; }
+  $("aviso-inicio").hidden = true;
+  reg = buscaRegistro(nombre, grado) || nuevoRegistro(nombre, grado);
+  pintaMapa(); ver("p-mapa");
+});
+$("in-grado").addEventListener("keydown", e => { if (e.key === "Enter") $("b-entrar").click(); });
+$("b-sonido").addEventListener("click", () => {
+  bd.mudo = !bd.mudo; guardar();
+  $("b-sonido").textContent = "Sonido: " + (bd.mudo ? "apagado" : "activado");
+  if (!bd.mudo) sonBien();
+});
+$("b-ayuda").addEventListener("click", () => {
+  const t = $("j-tabla");
+  t.hidden = !t.hidden;
+  $("b-ayuda").textContent = t.hidden ? "Ver la tabla del código genético" : "Ocultar la tabla";
+});
+$("b-volver-mapa").addEventListener("click", () => { pintaMapa(); ver("p-mapa"); });
+$("b-jugar").addEventListener("click", () => empezarNivel(nivelPendiente));
+$("b-abandonar").addEventListener("click", () => { pintaMapa(); ver("p-mapa"); });
+$("b-salir").addEventListener("click", () => { reg = null; ver("p-inicio"); });
+$("b-ver-docente").addEventListener("click", () => { pintaDocente(); ver("p-docente"); });
+$("b-repaso").addEventListener("click", empezarRepaso);
+$("b-docente2").addEventListener("click", () => { pintaDocente(); ver("p-docente"); });
+$("b-cerrar-docente").addEventListener("click", () => { if (reg) { pintaMapa(); ver("p-mapa"); } else ver("p-inicio"); });
+$("b-copiar-resumen").addEventListener("click", () => copiar(textoResumen(), "Resumen"));
+$("b-copiar-csv").addEventListener("click", () => copiar(planilla(), "Planilla"));
+$("b-bajar-csv").addEventListener("click", bajarCSV);
+$("b-reiniciar").addEventListener("click", () => { $("d-confirma").hidden = false; });
+$("b-no").addEventListener("click", () => { $("d-confirma").hidden = true; });
+$("b-si").addEventListener("click", () => { bd.registros = []; guardar(); reg = null; pintaDocente(); ver("p-inicio"); });
+
+/* ---------- arranque ---------- */
+// El enlace de regreso aparece solo si el jugador llegó desde otra página del mismo
+// sitio, por ejemplo la portada. Si abrió el juego directamente, no se muestra.
+try {
+  const vengo = document.referrer;
+  if (vengo && new URL(vengo).origin === location.origin
+      && new URL(vengo).pathname !== location.pathname) {
+    const v = $("b-volver-sitio");
+    v.hidden = false;
+    v.addEventListener("click", (e) => { e.preventDefault(); history.back(); });
+  }
+} catch (e) { /* sin referente: el enlace queda oculto */ }
+
+cargar();
+pintaTabla();
+$("b-sonido").textContent = "Sonido: " + (bd.mudo ? "apagado" : "activado");
+if (bd.registros.length) {
+  const u = bd.registros[bd.registros.length - 1];
+  $("in-nombre").value = u.nombre; $("in-grado").value = u.grado;
+}
+ver("p-inicio");
+</script>
+</body>
+</html>

@@ -1,0 +1,1085 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Conjugatón</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap">
+<style>
+/* Una pantalla a la vez: esta regla hace valer el atributo hidden por encima
+   del display:flex de las tarjetas. Sin ella, las seis pantallas se apilan. */
+[hidden]{display:none!important}
+
+/* Diseño: una sola columna centrada (máx. 560 px), pensada primero para celular.
+   Fondo de cuadrícula tipo cuaderno; cada familia de operaciones tiene su propio color. */
+:root{
+  --bg:#EDF1F5; --sup:#FFFFFF; --tinta:#17212B; --suave:#56687A; --linea:#D2DCE6;
+  --base:#3A3FA6; --tiempo:#A85A09; --irreg:#A8273F; --avanz:#6B2FA8;
+  --ok:#15804A; --mal:#BD2638;
+  --cuadro:rgba(23,33,43,.06); --sombra:rgba(23,33,43,.10);
+  --acento:var(--base);
+  --r:14px;
+  --display:"Fredoka",ui-rounded,system-ui,sans-serif;
+  --texto:"Nunito",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#111A20; --sup:#1A252C; --tinta:#E8F0F4; --suave:#93A7B3; --linea:#2B3A44;
+    --base:#9094F2; --tiempo:#F2A24C; --irreg:#F58194; --avanz:#BE92F2;
+    --ok:#45CE8C; --mal:#FF8793;
+    --cuadro:rgba(232,240,244,.05); --sombra:rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111A20; --sup:#1A252C; --tinta:#E8F0F4; --suave:#93A7B3; --linea:#2B3A44;
+  --base:#9094F2; --tiempo:#F2A24C; --irreg:#F58194; --avanz:#BE92F2;
+  --ok:#45CE8C; --mal:#FF8793;
+  --cuadro:rgba(232,240,244,.05); --sombra:rgba(0,0,0,.35);
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--tinta);
+  font-family:var(--texto); font-size:16px; line-height:1.5;
+  background-image:linear-gradient(var(--cuadro) 1px,transparent 1px),linear-gradient(90deg,var(--cuadro) 1px,transparent 1px);
+  background-size:26px 26px;
+}
+.envoltura{max-width:560px; margin:0 auto; padding-inline:16px; padding-block:18px 36px; display:flex; flex-direction:column; gap:16px}
+h1,h2,h3{font-family:var(--display); font-weight:600; margin:0; text-wrap:balance; line-height:1.2}
+h1{font-size:1.9rem; letter-spacing:-.01em}
+h2{font-size:1.25rem}
+h3{font-size:1rem}
+p{margin:0}
+.silencio{color:var(--suave); font-size:.9rem}
+.tarjeta{background:var(--sup); border:1px solid var(--linea); border-radius:var(--r); padding:18px; display:flex; flex-direction:column; gap:14px}
+.volver-sitio{font-family:var(--texto); font-weight:600; font-size:.88rem; color:var(--suave);
+  text-decoration:none; align-self:flex-start; margin-bottom:-8px}
+.volver-sitio:hover{color:var(--tinta)}
+.marca{display:flex; align-items:baseline; gap:11px; flex-wrap:wrap}
+.marca img{width:48px; height:48px; border-radius:11px; background:#fff; padding:2px; flex:0 0 auto; align-self:center}
+.marca span{font-family:var(--display); font-size:.78rem; letter-spacing:.12em; text-transform:uppercase; color:var(--suave)}
+
+/* --- botones --- */
+button{font-family:var(--texto); font-size:1rem; cursor:pointer; border-radius:12px; border:1px solid transparent; padding:12px 16px; transition:transform .12s ease, filter .12s ease}
+button:active{transform:translateY(1px)}
+button:focus-visible{outline:3px solid var(--acento); outline-offset:2px}
+.b-principal{background:var(--acento); color:#fff; font-weight:700; border:none}
+:root[data-theme="dark"] .b-principal{color:#0E1519}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .b-principal{color:#0E1519} }
+.b-suave{background:transparent; color:var(--tinta); border:1px solid var(--linea); font-weight:600}
+.b-suave:hover{border-color:var(--acento); color:var(--acento)}
+.fila{display:flex; gap:10px; flex-wrap:wrap}
+.fila>button{flex:1 1 auto; min-width:0}
+
+/* --- barra superior del juego --- */
+.hud{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:space-between}
+.chip{font-family:var(--display); font-size:.82rem; padding:5px 11px; border-radius:999px; background:color-mix(in srgb,var(--acento) 14%,transparent); color:var(--acento); border:1px solid color-mix(in srgb,var(--acento) 35%,transparent); white-space:nowrap}
+.dato{font-variant-numeric:tabular-nums; font-family:var(--display); font-size:.95rem; color:var(--suave)}
+.dato b{color:var(--tinta); font-size:1.15rem}
+.barra{height:8px; border-radius:99px; background:var(--linea); overflow:hidden}
+.barra i{display:block; height:100%; width:0; background:var(--acento); border-radius:99px; transition:width .35s ease}
+
+/* --- operación --- */
+.operacion{font-family:var(--display); font-weight:600; font-variant-numeric:tabular-nums; text-align:center; font-size:clamp(2.4rem,13vw,3.4rem); line-height:1.1; padding:10px 0; letter-spacing:.02em}
+.contexto{background:color-mix(in srgb,var(--acento) 9%,transparent); border-left:4px solid var(--acento); border-radius:0 10px 10px 0; padding:12px 14px; font-size:.97rem}
+.fichas{display:flex; flex-wrap:wrap; gap:14px; justify-content:center; padding-bottom:4px}
+.grupo{display:flex; flex-wrap:wrap; gap:5px; max-width:48%; justify-content:center}
+.ficha{width:17px; height:17px; border-radius:50%; background:var(--acento)}
+.grupo.b .ficha{background:color-mix(in srgb,var(--acento) 45%,var(--linea))}
+
+/* --- respuestas --- */
+.opciones{display:grid; grid-template-columns:repeat(2,1fr); gap:10px}
+.opciones button{font-family:var(--display); font-size:1.5rem; font-variant-numeric:tabular-nums; background:var(--sup); border:2px solid var(--linea); color:var(--tinta); padding:16px 8px}
+.opciones button:hover:not(:disabled){border-color:var(--acento)}
+.opciones button:disabled{cursor:default; opacity:.55}
+.opciones button.buena::after{content:" ✓"; font-weight:700}
+.opciones button.mala::after{content:" ✗"; font-weight:700}
+.opciones button.buena{border-color:var(--ok); background:color-mix(in srgb,var(--ok) 16%,var(--sup)); color:var(--ok); opacity:1}
+.opciones button.mala{border-color:var(--mal); background:color-mix(in srgb,var(--mal) 14%,var(--sup)); color:var(--mal); opacity:1}
+.casillas{display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
+.casilla{display:flex; flex-direction:column; align-items:center; gap:5px; min-width:0}
+.casilla label{font-size:.78rem; letter-spacing:.1em; text-transform:uppercase; color:var(--suave); font-family:var(--display)}
+.casilla input{width:120px; max-width:38vw; text-align:center; font-family:var(--display); font-size:2rem; font-variant-numeric:tabular-nums; padding:8px 6px; border-radius:12px; border:2px solid var(--linea); background:var(--bg); color:var(--tinta)}
+.casilla input:focus{outline:none; border-color:var(--acento)}
+.casilla input.activa{border-color:var(--acento)}
+.teclado{display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
+.teclado button{font-family:var(--display); font-size:1.35rem; background:var(--sup); border:1px solid var(--linea); color:var(--tinta); padding:14px 0}
+.teclado button:hover{border-color:var(--acento)}
+.teclado .ancho{grid-column:span 2}
+
+/* --- retroalimentación --- */
+.aviso{border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:9px; animation:entra .25s ease}
+.aviso.bien{background:color-mix(in srgb,var(--ok) 13%,transparent); border:1px solid color-mix(in srgb,var(--ok) 40%,transparent)}
+.aviso.mal{background:color-mix(in srgb,var(--mal) 12%,transparent); border:1px solid color-mix(in srgb,var(--mal) 38%,transparent)}
+.aviso h3{font-size:1.05rem}
+.aviso.bien h3{color:var(--ok)} .aviso.mal h3{color:var(--mal)}
+.pasos{margin:0; padding-left:20px; display:flex; flex-direction:column; gap:5px; font-size:.95rem}
+.pasos li::marker{color:var(--acento); font-weight:700}
+@keyframes entra{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+
+/* --- mapa de niveles --- */
+.niveles{display:flex; flex-direction:column; gap:8px}
+.nivel{display:flex; align-items:center; gap:12px; text-align:left; width:100%; background:var(--sup); border:1px solid var(--linea); border-radius:12px; padding:11px 14px; color:var(--tinta)}
+.nivel:disabled{opacity:.45; cursor:default}
+.nivel .num{flex:0 0 34px; height:34px; display:grid; place-items:center; border-radius:10px; font-family:var(--display); font-weight:600; background:color-mix(in srgb,var(--c) 15%,transparent); color:var(--c); border:1px solid color-mix(in srgb,var(--c) 35%,transparent)}
+.nivel .txt{flex:1 1 auto; min-width:0}
+.nivel .txt b{display:block; font-family:var(--display); font-weight:600; font-size:.98rem}
+.nivel .txt span{font-size:.84rem; color:var(--suave)}
+.nivel .est{flex:0 0 auto; font-size:.78rem; font-family:var(--display); color:var(--suave)}
+.nivel.hecho .est{color:var(--ok)}
+
+/* --- tabla de puntuaciones --- */
+table{width:100%; border-collapse:collapse; font-size:.88rem; font-variant-numeric:tabular-nums}
+th,td{text-align:left; padding:7px 6px; border-bottom:1px solid var(--linea)}
+th{font-family:var(--display); font-weight:600; font-size:.74rem; letter-spacing:.08em; text-transform:uppercase; color:var(--suave)}
+td.n{text-align:right}
+.scroll{overflow-x:auto}
+textarea{width:100%; box-sizing:border-box; min-height:110px; font-family:ui-monospace,monospace; font-size:.8rem; border-radius:10px; border:1px solid var(--linea); background:var(--bg); color:var(--tinta); padding:10px; resize:vertical}
+input[type=text]{font-family:var(--texto); font-size:1rem; padding:11px 13px; border-radius:11px; border:1px solid var(--linea); background:var(--bg); color:var(--tinta); width:100%; box-sizing:border-box}
+input[type=text]:focus{outline:none; border-color:var(--acento)}
+label.campo{display:flex; flex-direction:column; gap:5px; font-size:.84rem; color:var(--suave); font-weight:600}
+.pie{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; font-size:.82rem; color:var(--suave)}
+.puntazo{font-family:var(--display); font-size:3rem; font-variant-numeric:tabular-nums; line-height:1; color:var(--acento)}
+
+/* --- créditos al pie --- */
+.creditos{display:flex; align-items:center; gap:12px; flex-wrap:nowrap;
+  padding-top:14px; margin-top:2px; border-top:1px solid var(--linea); text-align:left}
+.creditos img{width:54px; height:auto; flex:0 0 auto; background:#fff; border-radius:7px; padding:3px}
+.creditos .texto{flex:1 1 0; min-width:0}
+.creditos .cole{font-family:var(--display); font-weight:600; font-size:.92rem; color:var(--tinta); display:block; line-height:1.25}
+.creditos .evento{font-size:.78rem; color:var(--suave); display:block; line-height:1.4}
+.creditos .autor{font-size:.78rem; color:var(--suave); display:block; line-height:1.4}
+.creditos .autor b{color:var(--tinta); font-weight:700}
+</style>
+<style>
+/* Ajustes propios de Conjugatón */
+.frase{text-align:center; font-size:clamp(1.1rem,5vw,1.4rem); line-height:1.5; padding:6px 0}
+.frase b{color:var(--acento)}
+.hueco{display:inline-block; min-width:70px; border-bottom:3px solid var(--acento); margin:0 3px}
+.etiq{font-family:var(--display); font-size:.74rem; letter-spacing:.11em; text-transform:uppercase;
+  color:var(--suave); text-align:center; display:block; margin-bottom:2px}
+.modelos{max-height:280px; overflow:auto; border:1px solid var(--linea); border-radius:10px; padding:10px}
+.modelos table{width:100%; border-collapse:collapse; font-size:.82rem}
+.modelos th, .modelos td{padding:3px 6px; border-bottom:1px solid var(--linea); text-align:left}
+.modelos th{color:var(--acento); font-family:var(--display); font-size:.76rem; text-transform:uppercase; letter-spacing:.06em}
+.modelos caption{font-family:var(--display); font-weight:600; text-align:left; padding:6px 0 4px; color:var(--tinta)}
+.opciones button{text-align:center}
+/* El botón de enviar dentro del teclado conserva el color de acento */
+.teclado button.b-principal{background:var(--acento); border-color:transparent; color:#fff}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .teclado button.b-principal{color:#0E1519} }
+:root[data-theme="dark"] .teclado button.b-principal{color:#0E1519}
+.modelos table{font-size:.7rem; white-space:nowrap}
+.modelos th, .modelos td{padding:2px 4px}
+.modelos th{font-size:.62rem; letter-spacing:.02em}
+</style>
+</head>
+<body>
+<div class="envoltura">
+
+  <a id="b-volver-sitio" class="volver-sitio" href="#" hidden>‹ Volver a ÉPICA24</a>
+
+  <div class="marca">
+    <img src="data:image/jpeg;base64,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4sbOfT4J3hFjcQj5dpxkt13cZ9Oele6zxF0+Q7XHINcnrvg/w74guDPrGi5usYa4t2KM31KkZ/HNa0asIybqq4nG/wAJ4H4j8Q3vi/XY7j7HHG5Vbe2tLcZCjJwo9SST+dfQFv4bsF8I6X4e1bTo79La2QSA/wADgclT1HOeQRUeg+D/AA74euPP0fRiLvGBc3DF2XPoSTj8MV1dvCUUlzuduWJqq+JU7Rp6JCjG2rOSg8F+Frayns4vDMZt58eaXJZzg5GGJJGD6EVq6Xptvotktlo2lxWlmGLvGeS5PUk88+5zW9gelLiudynLdladjlV8OaCl2LldCAmDbgufkB/3c4/StC9tRfwGLU9PhuoCcquOU+h/rxWzgelLis1BI1lXqSak5NtbavQ5iy0HR7C4E9jogW4XlXlYttPtknH4Vav7CHUYFh1ewW7VWLIV+UqfwI/nW5gUuBRyK1gdeo5c7k797u/3mKsCJY/YU02IadsMZtz3BpmmabZ6eJItM04Wolx5jk5JA7ck1u4FGBT5UT7Wdmr6PcRRhQKKWiqMwooooAKKKKACiiigAooooAQgHrQAB0FLRQAUUUUAFIQD1FLRQAgUDoKWiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD/9k=" alt="" width="200" height="200">
+    <h1>Conjugatón</h1>
+    <span>Verbos</span>
+  </div>
+
+  <section id="p-inicio" class="tarjeta">
+    <h2>¿Quién va a jugar?</h2>
+    <p class="silencio">Escribe tu nombre, o un apodo si prefieres, y tu grado. El juego guarda tu avance en este dispositivo, así que puedes seguir después donde ibas.</p>
+    <label class="campo">Nombre o apodo<input type="text" id="in-nombre" autocomplete="off" placeholder="Ej.: Santiago"></label>
+    <label class="campo">Grado o grupo<input type="text" id="in-grado" autocomplete="off" placeholder="Ej.: 7-02"></label>
+    <p id="aviso-inicio" class="silencio" hidden style="color:var(--mal)">Escribe tu nombre y tu grado para empezar.</p>
+    <button class="b-principal" id="b-entrar">Empezar a jugar</button>
+    <div class="pie">
+      <button class="b-suave" id="b-ver-docente">Panel del docente</button>
+      <button class="b-suave" id="b-sonido">Sonido: activado</button>
+    </div>
+  </section>
+
+  <section id="p-mapa" class="tarjeta" hidden>
+    <div class="hud">
+      <h2 id="saludo">Hola</h2>
+      <div class="dato">Puntaje <b id="m-puntaje">0</b></div>
+    </div>
+    <p class="silencio" id="m-regla"></p>
+    <div class="niveles" id="lista-niveles"></div>
+    <div class="pie">
+      <button class="b-suave" id="b-salir">Cambiar de jugador</button>
+      <button class="b-suave" id="b-repaso" hidden>Repaso mezclado</button>
+      <button class="b-suave" id="b-docente2">Panel del docente</button>
+    </div>
+  </section>
+
+  <section id="p-explica" class="tarjeta" hidden>
+    <span class="chip" id="e-chip">Nivel 1</span>
+    <h2 id="e-titulo"></h2>
+    <div id="e-concepto"></div>
+    <div class="aviso bien" style="background:color-mix(in srgb,var(--acento) 10%,transparent); border-color:color-mix(in srgb,var(--acento) 35%,transparent)">
+      <h3 style="color:var(--acento)">Ejemplo resuelto</h3>
+      <div id="e-ejemplo"></div>
+    </div>
+    <div class="fila">
+      <button class="b-suave" id="b-volver-mapa">Volver</button>
+      <button class="b-principal" id="b-jugar">¡Vamos!</button>
+    </div>
+  </section>
+
+  <section id="p-juego" class="tarjeta" hidden>
+    <div class="hud">
+      <span class="chip" id="j-chip">Nivel 1</span>
+      <div class="dato">Pregunta <b id="j-num">1</b>/<span id="j-total">5</span></div>
+      <div class="dato">Puntos <b id="j-puntos">0</b></div>
+      <div class="dato" id="j-racha" hidden>Racha <b>0</b></div>
+    </div>
+    <div class="barra"><i id="j-barra"></i></div>
+
+    <div id="j-muestra" hidden></div>
+    <div class="operacion" id="j-operacion" style="font-size:clamp(1.02rem,4.6vw,1.3rem); line-height:1.4"></div>
+
+    <div id="j-opciones" class="opciones" hidden></div>
+
+    <div id="j-escribir" hidden>
+      <div class="casillas" id="j-casillas"></div>
+      <div class="teclado" id="j-teclado" style="margin-top:12px; grid-template-columns:1fr"></div>
+    </div>
+
+    <button class="b-suave" id="b-ayuda" hidden>Ver los modelos de conjugación</button>
+    <div id="j-tabla" class="modelos" hidden></div>
+
+    <div id="j-aviso"></div>
+    <button class="b-principal" id="b-seguir" hidden>Continuar</button>
+    <div class="pie"><button class="b-suave" id="b-abandonar">Salir del nivel</button></div>
+  </section>
+
+  <section id="p-fin" class="tarjeta" hidden>
+    <h2 id="f-titulo"></h2>
+    <div class="puntazo" id="f-aciertos"></div>
+    <p id="f-texto"></p>
+    <div class="scroll"><table>
+      <tbody>
+        <tr><th>Aciertos a la primera</th><td class="n" id="f-ok"></td></tr>
+        <tr><th>Errores</th><td class="n" id="f-err"></td></tr>
+        <tr><th>Puntos del nivel</th><td class="n" id="f-pts"></td></tr>
+        <tr><th>Tiempo</th><td class="n" id="f-tiempo"></td></tr>
+      </tbody>
+    </table></div>
+    <div class="fila">
+      <button class="b-suave" id="b-repetir">Repetir nivel</button>
+      <button class="b-principal" id="b-continuar">Continuar</button>
+    </div>
+  </section>
+
+  <section id="p-docente" class="tarjeta" hidden>
+    <h2>Panel del docente</h2>
+    <p class="silencio">Resultados guardados en este dispositivo. Para pasarlos a otro lado, copia el resumen o la planilla y pégalos en WhatsApp, en un correo o en una hoja de cálculo.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Jugador</th><th>Grado</th><th class="n">Nivel</th><th class="n">Puntos</th><th class="n">Aciertos</th></tr></thead>
+        <tbody id="d-tabla"></tbody>
+      </table>
+    </div>
+    <div class="fila">
+      <button class="b-suave" id="b-copiar-resumen">Copiar resumen</button>
+      <button class="b-suave" id="b-copiar-csv">Copiar planilla (CSV)</button>
+      <button class="b-suave" id="b-bajar-csv">Descargar CSV</button>
+    </div>
+    <textarea id="d-texto" readonly hidden aria-label="Resultados para copiar"></textarea>
+    <p id="d-aviso" class="silencio" hidden></p>
+    <div class="pie">
+      <button class="b-suave" id="b-reiniciar" style="color:var(--mal); border-color:color-mix(in srgb,var(--mal) 40%,transparent)">Borrar todos los resultados</button>
+      <button class="b-suave" id="b-cerrar-docente">Volver</button>
+    </div>
+    <div id="d-confirma" class="aviso mal" hidden>
+      <h3>¿Seguro que quieres borrar todo?</h3>
+      <p>Se perderán los resultados de todos los jugadores guardados en este dispositivo. Esta acción no se puede deshacer.</p>
+      <div class="fila">
+        <button class="b-suave" id="b-no">No, cancelar</button>
+        <button class="b-suave" id="b-si" style="color:var(--mal); border-color:var(--mal)">Sí, borrar todo</button>
+      </div>
+    </div>
+  </section>
+
+<footer class="creditos">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAACoCAMAAACSclH2AAABgFBMVEX//////v/+//////7+//7//v7+/v79//7///3+/vz8//3+//n+/f39/f79/f39/fv9/P38/fz8/Pz8/Pr6/Pz7+/v7+vr7+/j5+fj49/f77ID96gD52M/62FD73RT60hH73QX71gX60AX84gH73gH72wH52wD71wH51wH50gH5zQHz8/Lv7+7r6unm5eXl4t/b29vm3tLv3Dva1NHPz87NycjFxcTp0Vjy0QzVvVfavSG+wbW6u7O1tLSwsKJ5vCp6tTtwuSxvszNptitntC1lsS9gsS5fry1ary6rq6u4qFyjo6J4p0Zhqj5ho0ZbrC5cqS6umT+Wlo2Vil6Veh9pm0dqjFJ5fXNzb1xVqzBSqjFUrCxTqDNNqTBMpTNFpTJLnT08njY1nDgumTk9kDxCdTFzYClaW1VYTzVPQygwXyEnTxo6PjUZPw83LRsnJBsgIBkfHBcOKAgWHQ8kGxYhGhggGxkfGxkeGhYiGRciFAwbGRMUGA0YEg0REgwRDAnGK1mZAAAveElEQVR42tWdiUPbVtb2L3Gi2AljE7vevmnZ2ixEXhRsq8RLhtJsirEDCiDS0MTtYERsGW+AjeXlX/+ec2WDSUiadzqknTsdEnb9dLbnnHutMPbfXYLgtP7iC0uxWDwhf7AS8VhMEgX+JW6nILC/4xKc/LqEiBRPZTK46rgUDYm+oBhwu72BQCAoiiI+l5DT+KwUFfk3Of92FPzuBiKJTEZRZCkcCvKPMvowPufE3Xc7J6zLDoYjsbSCL7Ng3MLfiAJvvGE5k83KsYjX+pjb63M7LRp+653syi38ecVpfZ6FpISSzchRn/UD+H/CX+tRRCHJipJKhC0En5u5vbgorzMSjwpMSsuy6HJEQ65oLCJ6mI2xKTfHCUgy2KM8YGCzv5KEfnNQSmez6TC/tW7uKEEQhbNqgsX1FMtuZzK6zEJGgmmapmtaXArj88Ik/+ZAOKVk5QjZzD3lFP4qCvzicCarxLkpnG7+URFYqpZgqiFeYVpEMiTGZIllqirLBFQ9qsnGdlzNBt0+5oXhJhiLpLLZBOJlyvuXgAi4bl8ct5MovF4ncwrhWEZTA5oRCWWrUkIXHQ5VyuqugD/oEVVVD9xiqsaCLkNhuu4MaKrIfM4pwnfDqJnIyFG/uk9F0mqaO7ibIjjknJAMLZENygburq5FjKjDkY2pusvncMDJVCMuCJom2MR9WcjqE0E9w9Qs8wrCLdwFJiaySgy5zv01KSgdBWJIoCEWCVKEBgVZk1iAbWtMEiNGTHCresiIM6bG5SosJoqaEtZVxrZVJkj7EosbUxmVSVWNDd3JN4XQz2TxE9lXczBKLsGEkiFjRPWw0y1FmTuiS8zHMoaqS4IhC0zVBV0LSFrUvq3HJfhViILGYwBG3hdZWJfVcFiFp8GZQtlsBHluEjYGiviVrCIgL4lyNg2PdnqdmQzCXauqXpbNMC9utByTfLrCInrGFte3t9MsEFBUNatkJU9WS8m6Kvo0g026NSQyVVN1L646q6e3Q8wT9JKDpjiK97JTMf34gKymKX96cTMTWU1hkm7sSzEVIGEjxtSUritaxuZiwVjI5nEMv9PlsDFXSIyGQll4IdN0pmgR1QhCpUQjohF12pnf43JYKHCwS03FgnuCrJEiR3aSByQ0SYa3qFHtQNUgBoOGrupyKhEPsRGATwyFwpFwKCSKgdGPCTqFhJQwUixqhJkPdtjWfTYxq3lsdpvXTRk9EbhMEorqhELplgqzKMtu1DuWrobhVimjhvssqYpV3plfDEVJPCp8ZbHwR4bkYlj08nsSlqLOTDUjTLGIBs+Kq4bGXDbkrYCPhTKKdGmKEl7ljmczIavyhSPZVko0Ek6/30gnNHBpaeYeqsJIIgXdpaQh26VIWBS9qCRiKCxJ8TgJMkgsiYtKiEzZG1K3ZdtNTYvqceZhshp3ImuwiILfdClxgmuU6Ifz2icq2nZQ1wQjy4J2PSMZqYCNBb1cr0ALKpmUFAq6RnfAYXe5zn6QNxiOk6USEolfwRsm2RLNaroesvkF+UBVw6hMTIgrCQG/Vfive5WYUaJWbAhhVQ5lQ2lD0BCsYT0qKVF+qSGJ/EfiGt5mdzhcpAQn3R6XyzVpyXm3+xb/eVfCUgpfi1jCCqtZPwsYSOAepm2zlBZyktWD6WyUkuR/0cME3OtEFjZ3wxzhOFNVdtXpCxmyDwlKTdn8dOGiDFPESGewKZ/Pewt61jZBa3LS4bxx/TpjExNs4trkpCA4XHau5GMQ8jGeAhyebDVu8whhqkFalsXd5F9RRfaxgPO/1kri50SUdIg3FW4fqreecUMkIYUGgxSV4BDjmWw6TkAO/N6Ja8J1XPoVYdJazls3btyAbSaHH3DAWC6emIP0fVG73RGUFNnhRR11BknHqAgYiLmADKM4ff+lBCYwn5yVLGEiRVhME8EiOsOJbDVjfUUUko90ks0x6bo2MfatExMX/kQblt026eaCMQy1HKdwCbpdcpXKKhK6vq2qXmdwEkZJB5nvv1Ee6eqzsLAXpg5puohCnJFbkFFpLSEF/VT2FF7BHH4/3elJXDts4Mbyen1jC107LZQVFJZwOBQWYTt8nY0FoplsClnb50vpihjUqmLaYEFNnJjyBdgk3UTnn7YJzCvynI7uIahqihF3CpLGUP+yapR3H3I2IwEWvhJE4jm/9veNT6wD/A9OQ02hw4M8EZYtGR9UVIgX976OHsctBAIkJiOKHEDMC38yWcWzCZ5DWGY7qwThVEFBlZiclZ3eAOSEwtXKPwS73cPUQd9avd7wzy6t3uhd61OmaeJj5kBj1mACVvR4KVoouXtYWPIGVSOMgA84xWxccIuCV8Zn/sSMghwT5gjxdkfS0C8xd6IqwejScH6Q4WqF3ysCiR6Yx/W2ebaaze6Fq1k/blWla9etgEGedjjd/2BumfoCLBnqPhiC16H/QmQG3CymRP5EnUdwS1kkD5+btIfGtreFANOMrKYyX0BkItepNqdzGL/XUAQGtWa1XBmt8idWyWjWBts211jow6hTkGqpbCLIgs64piJbBTgRrgJtW1iJM5vwH0e5rITB4WM+1ZCiQtyQnAFR0zN2+G5Qpgif8LpPw3BiiqXMend/azNPK5f/eBX4ym/tN+utFJv6wPwTzknSixLyVkjTgtwLVFxFTMQ9EpWU4z+r8uh3lJSbxAL6hrSRYUGqun4qFR6KnAx3KudZYpyYZKLR7ZY38zmsnY/WW77evXtX2Ko0e3qQiv25NcGo7HORNUEy3qvBMqCpZhwOv52llSDz/idRLmVjvItCH6eKiiH6XbGaGvIE/A78MiVifdHYLGoCJlEHzUY+9/r16ze0fhlbv1oLHO/eFhtNU2H+Gx/cOWFScCJJCXEYZSowhSTIdEXWDC1IjYqdxfDx/2vIC5Zbeb1uX0JD0x0IoEjZY5ocdMCr0koMX5NROMY5kITZbhRzFgat16d//XW03r3Nl7tdI3T9mxvXr5wb9LmZ1xpshxVFxD2Us4K+n00ZUZuH+YMC3b/Y/zHkEXaZtFUDZT26vQ3dk65mguEgC7hwY1JB6m9NJDDvOZBJm2j0uqX86+fPX74ExNki64xAduBZyL3fnAdBRKD5dcLcJIRiiG0aWWwrTNfYTVxFjAEnSCTC/yU8wtkEbzYlTckwqYrfIBqaaHP4qeWJ2Jg7awxaff2b8yATyFv9Zjn/nED4m5enJOReOwTzLg/PaqOXvzUO4nSK+qCmhZh/ksaVFPToHUURWTLEIlndCIdEXFcQtflLSSbQ/UGWI8q91PClPUGmGj4WkR030XPElTiyZkI/6dVqx/0s850TDx6WMSlIXj4jDgIZrtdvXhMIkbzLl7p9Q7z+za1xg3gntMFxe7AvM4dvyu3kzU8MaVdE36PoqrqNrjpM0h6m+sI4QX+WRhF0T+GGqFnmEh0e0dAj+GY/cmAGdTyk1gYnnW6t1aol0J8I498ba9UbhdwzWs+fPbfWOMgvAKmgqgvkWWeKEgKud9I2a/2aKqLVddLtETMy8/rhVXoshQiNHGQptwQziS+ziRvOA4mIHxXWZLmqG4ZiCyBt4T7YYuRwtozRb9W6lS29UTWNsNN3TRj3SaOLaAfGUyyOc+phOwCBSX4pNMzBB6b0IgR7vWq1Wzsho7jpk0j7ckZEq5OmAXicxXVfUIIOpvedf6yGnbyGUrwFwijmiqpA94jUqDFnGnmMSdu9fqvVLG1ubpW61cG2y+Nx2M+ShFsfNIsrT631zGJBvFgoRPLrTrFhVuOw5BmIm8Wr3WZD26o0Oof9Fu6a1ys4nQEhxpsd0l6iM61L2r7EAm4hBdQ/AqEOKkqi2UndqpYmv9eizO4P4BNooUW12j856Za38riinUqj1tNsfpd97Cfog25pBQYZM8owTIgErpUrNvpG2OZxnYKAw+jVGltbu7ulSqN+0tMT6EnhE4j5rMyCHqiJWwhUNSuFvGS+zB/ECdlLwl2HOcIoQ9lIRAumVVW2+dF1JKhhT+t9s9at6lv5ws6vv64VKs3WQGVjJnFCbnVLy5Ypno5I4GCnKDu5Urdn+G+eggjE0a91i1u7v/97d7fSaNZgFDRTbhdIxHTa4/KwtJSpZoP4/dsKtKQv89l6QhVJzoYmvOCQFWPbMHQjG9HQSftt6GhF5OJWv9XulrY2C+/gI7/u8ERqIiE4zkC2B83SyhOsp0/5mzOrPLdsApC+bnO5hiC4oPRBtzbQt3b/TWu31GjUWiY6XRciBe2wrIi2AItBPjLFVONZBS2KLyN9Tne5p+S0e8rnFmJGiimKXVb1/TCDPRA3CV46jlvdg618HorpFwLhJGYrCwlsiVi7za4PzOLKsyePnz7GGqE8fcbrCicByMBwEYjTYXPAg7Nmr9Yvru7+ZoHsFskogxqM4nY6PB4Ux5AraJMzzghNwJ3wdJ8g0tT7054VyTonfVO33Il93SlS0+GPip6gB8UjgqRBXtXUtzbfvbVKNPz9l81So9kyVS/5rM1ud9hCRs/cgms9Hq6RUXgu5sU+V4RrhQTUCqcLpgxrvVZ9UMzv/vb777//21qlRrfWHMAozONy+fmv97tCLKWjYWao/143i2RCn473SW8qjV8Apw2BPbUdF10Ov4d5MoonrLXQajQNeFUBEtai+OX1Wi4PErO/TQkC7ZEfYqtVX12GRc5Ingzd67mVu3LFZruNEPZ6gzbmUoxBu96APX7//QzEMkqvCqNALpJDSEzEz9bQosQPIIxQKWX5086FYJcT9GkvS1WjTM+6Pf6gI6rI+HVIud2DIhoKUq/cHL8QyNoaklCz1TMUcZS0WgerK4/H1pPTULEKysvNCoKED4jDGd006/3qlmWPUxCKlGb30OxDYbn8iPUwNJZfENUYkw620QJDc2QC3s9qRTVKJEg+RirGHJ5bDjkbkfRur9WrFfN5ong3tAg4Xq+9fPlstdjoHnZ6ejYaCka0PtLoKrfHz7TGUQjkOf6XKzVqfQMFSjOOesftrrGV/83iOAPhRjk87FdVCF+7C8okxVwsim/RQ1T2Q0hh7s9q3kxcpLImJAyZHBQ5I4LSUWuhdGzu/oZ2gndHO0OQNy+fP1vLF8gRuoOqoR/0690yDPLz6bJAHlvuRVX+9ZtcvtKtmX2zO+jXzW6luFXYHYGMkyB9NfFlusQolHypDISxKCfcjAbC4XT6Mxt0AZ8iiVI8yOMe8eW3sXQmtT8wq2ZV38wXfgOFBUIWecPV+ctnz19ToHTrtW63C7FUfbW68tPPP59HeXwaJy/Ro+Q2QV43m81mt1Yic/D1AQgWjFKr9Q6yPuaw223pjM9rbfsKLBQXU5+OEYHhk0FRopEh7Uv5YSBZqg5qtaahkVehSR2BgAMgO6/hWs+ev8ktryH7d7vNbqNMHD8RifX21CpPnxAJLPL6+VpuExUcq1xEZX37bgzkPMluudmq9bp6wuVAoMhK0G1J1JAUgTqLf2J/TmDxtIBmSozH+OY/aV1kOqVq1prlLZjjDASNBYHs5HJrVL8RAisra8VSuVwqri6v/Oun0Rq3Co8TqiWIeKSIwm6xWMjzqHv3SZOUyvXjY3PQUqnsEIl1rkKQwj7BHURSdl+gg9GbKyK05aRbjMfdJBxkJAmPnaUOBjVECM9XBR4jPEDevFnL7eZzT0iIIAgeryzz9dPPP/10MQhM8uwp18Jrb97gHuTyOzvI5accH5qEwr0LjCoKmoNmsX6WUWmGFpQibtJi4UzQfdGZryCpRQqPQESmspmo6TbmmQwy+aDHSX4bWuTXIcjLndXNzRXSVLjbVnzTtf/0r399xAIQHiRrlqo/beH5UOXdhSCI9W6zPTjW4B8Om80CgbCDHJQCAhMmAywhUzckfDjCsHyOS65ITGJy1TS3I8yDBpE0XaNCJilYRYRq4Zs3uc1U4tXa8+fPKL1aNWOFX/w4yE9nIE/WcmtrT6yyOByrvLPWGMfvo5xVJvFo8urusEP82CddQb3fV5kUCw3PIAnUx34AggBJodcZHhMLhiWERgtKLiL4cSdiRr/eKFvFcAxkK/1t6lXuCV/DjMs5hib51xgLxcjq5osXALF0sDUhevsJEF7a2wMjM8mo3eEg6LBMpGNIeffoAFhECXxgER4gzpHDwbvCWcOEe6aDiDIHkfQOOcnbcZBXiW+//fbF5srjZ48fn2IQx2idgqz8vLLyZPXRg0fFEYhFAk/9kORUAfeONTTcbgoPThII6oNaS0+ERkcOhUlmCZFxkECGW0kYtQhTIVnTURPJNx0u8i6z1ijl3448CyC/7LwCx7cPXqyunFGMY4zFys8ry2urqW+/fUQWeT4COQ2S8yC/Uyls9/HbmW/yqgAQGg47WHQbPZLEjxUOBZUzSN3TGItAEsx7ZiTBOSGGJTVusdG2NEsMSbjO4vOd15svvuUkjzZXqAR+zHFKsrKysvoCHN8+KuRerr3GfyPf+vWM4xRkt9w12z3Ep29yfPfLHUAeDYd8wpk3IfAzzD15rr/1usfDRnD63FZnPFyQkTUTKrVgWYQPqoYguLxVMsoFHCOSlVW41bcXgXwUJLBHuWG2u6p/MuievHbt3AYg3W/3+NaowMY7LIG/ez4ju+l7nIIwRqKY7WZjd2cE8npn89EQ5NsUqZKLOIjkX/96vPoiMUTezFF1vxjEIiG/Omlnr9h8Ux/u5sIW6cS5jCsIUeUMxMektPM8h/NDDiJR+7VmZXPHinX0FVupEci3iRery58CsaLjHIgVIzQbGgsRvnYLpWb9pKeygGfS6bx1/foHx0Dd6EzG93idLBM9JRGcVOwFNv7peMbpPA/idNu2qcTn3w5B1lYTpyAPYiBZuYBkeXn11BynIM9HILTVUIBQKZwW90KxUa/3t0W/30V72tevX7ny4ZAn6HSfmxhnRhfOI8Z33vMkJSh8ACI4XaH9frNRzFkcz62kdYryaHX5Y3ssr4xjEMiTcyBv3+YLxVJptzDyrd1K9xBdFxrTyUnnjY9AwIBb7B43UgBWGJ4s9tL+3Dl/FBVxLNCHy4ZyQmO0LVwAgaytfnuOJPUKcuucMcgaqXNfhPTLZ49WjOy8zeWL5XKlUSkWhgYpNQ57RpQf3LomXL/+kUVQBdPnRqZuFktZILe4ccb3ObxC5uORN00W/Czbb3ff5znJy9xZsA9RXqyu4upXhmt19dWjxPmv+HZ1CPLGAkEjU94t5IuNBmzyjgzSME+OUwiQWzccdjZx5YLXEKA5FAWncHZCNKCE+J/OQIbb5uyTU1agfwRid3kCOlRXMU8WeYmu4oP7/SC1iqt/8eLFI75SH1CkUi82c0+oKRmBQIhsQciDpMxNAoPUB9qEz4UWm37/lQtn03J6bM4IE6FOOK14oOLoPAuQWOaCV0QQCEwiVZvNcn7nFxQD6o8+QHnw4FXqwQM61IB1DiLxSH1FWnnlCe94rVHdDlJtKY+amC83qNv9bbfR7R1AYpAuuvLJhjxgyXTSVehmnUJE4UfzWSbGD5mIvFnnARK6YNpNIESikklyAEFj9RKN1TmU8IOEGLZWNBodo4ClALFCXQn1JAj2nd382q+/EgGJ6iKB/JYvdU0IdZ9r0jV57ernxtPcIsitqiI7GY9xJoh8kBOWFVWy5ic8mD4B4nGEjG63wn2L4n3tSW4TAf1gxJGOwhzWUZNTmzx49GpzdeXJcET0hBr3tZ3XOxWyBZyqlLdAChQrze5B5Ootx2dBcJXoOLgzpWJiGhRU7xmLpdHKZ5W0GJf5WXdSL85PWITH+8CESbhFaBPn6ZOVM5RUNCg+SKVTD85AHlDV58YYTevgWbnXb3IVIOwUYBI0a/kSuh3qpOhcx62rwjWsiU+DTIQU60VBaYnvPQeVACyQjsnZTDTAiQACPSlc9AIIG18OlxA2eqiKNEAhDurYV1YQ9gleFkMP5AScSj6LkhTKC6QxqcrhgOvZy2drr39FvgJJoUAmKexWijSIadbb3fQVD2OfBxnpDgZlJfhYMBOnc+1BlR8ngW14Fh6a6XOHhbRBs7qZ45Mgq8t9wpMtVGE49UiOhsSQPzYMFeIYbxOptV+l0wSvf8mXtihX7WxVGsVSpUj9ebtdM40wP2Zr/4PNKMQDZVmqhXgnpSQY4kXi27eWTwlhxen8g525RIvK+w5AXlrdOu9xVzZfPBBD4RA/jRWKPQjxgI9xCXY6FsLX5orlSrmYe5kv4eL7lcJqsVEpFSEUm03TbPW3edqll8p8niSVoCjhUe5mATVLW9lW7bPSsPD5fQdrSLHfb5Q4yLMRCF3lyqqKzBvisU4ksEk0/GgchCYtxTIBNIprOWTeTUBAoGztN/pNs41VQ876kmPxtH3uE4YgsElYDbPRgXoOQiXkj04WkG8hSCyLPLNGQYTyEwq5/CAUDFlZK5GIhqOprWXLs9CS/Pz06TICY3N1eRXuVFgtlfNrCIwyuLpd02y3WkdHx/0M89i+6EADioYgoD+8xcOZDk2PulsCEU4F2KeXh/JWZTM3Ank6tMnKakoMxuSYSM4FuyTSmXTiBZ/WUdOFMFp7W2pUSDXmEB35UmnzzVqpWCg3zXod1iCQdj3Fbt24+iUgEcXHnFkL5Nw1cxAp8yVmRa/YKBDI2hnI45/WXvj9YTmRSFhREhLhWf7U2tCzflpZLpSLCIji8rNna5uVSr5YKeysQZM0zJZJGARCu72u61e+6EwcTBLIhoYlzymcB/kCg9hckCldC8SyyNNhuK8+ehQLif50xD/0rmhKRQtsTVFWaDi8urJarmy+fPkyV6pQKdyiXGWaZtsCOT4m4eu4+kUgdNMDWXEIIpwDyUjpP+awO1i4SmcCCOTlSw7C99lWHm++CothMS3HRiZBRecGAWSxBH8qruJNKff6db5c3iwVtw7oTCBx1Ft8ASTMJr/wvIxXEUPK5MevXRRYNJOJfBFI6MA8D8KdC9Vk9UFIjMqxWIzXwxhqoZWzVpCiisur8Kdnm+UKHa2rFDe3qJDX2xQeQ47WsWlE2OTEFx40SUswivMCEFFV/viQBwcxzoMMnYs6kBTUT8iPiIdrvdpcPp0GIUch9TaKT8gkq5tlZN5Kv3lMF3+EdTwCgfT9QovAg1Ipa1710WlrNfHH524s1zoDefZsLOAhVbZQSsTEAxFBb40j0CUurzxe2awUVnKVympuE8oEXlVudE+OjrGOLBCqIu1jsxZjLtsX+lYwm/Vd6EGCHPrjoyo2OwX7MGudgYyMsryKfuTRI/Qlm5u04bP8c7FSKT5ZhjlKqysUJavQI/CqRvPk5OjoQ5C2mWIeaNMvMokz/olIEJjg/CKQeM2qI6/pEMAIhBsF6SmHzmMT7cfKY+Sr5eW1YrnRQH5aXUUpzAOqUNzSqwhykwMcD41yzDlatYHC/F8IcnXqM69m+wKLIP0qZre8ucNBXg4V8JCElArWMroPXjvyCPdNqJAGlyK5VRTyzeJBl/ItGcQCOTo8PEGQHHU6neO++sUgNC/5c6+lZCokyiqBUG/FSYaBMtqTtqTXMqpEGaWjVFxFaMMuhbwVHMAgc5zwGD8+PjnsHB63zM7BxvteX/ti12J/9qU+gm273y3RwJEPTl+OgTw5BUHcFyg1NUorMAlcLQezlFah3PvN+hDkaAgCk3QOe5295Hd7nZ7uoU2Er/JySjqkbG5dBMJt8vNjS+a+LaN0rFTKj5+ulEqrT9ASbxXhVdytUMgtklarTiiEsb64NL3RQT9i+0og6PjbzeYWH5xa50eHuYt3WY+fPgMKVG5pJVdu5JZLxZXnT9Yq+eW1HKpH1zweVgy+juotyMX64Unn/frizPz9mfUOia2vBIIQ6TeNzZ0LQfihAGo6ypW15a1GcQs9BzJYuVLMbfJC3hqC1C2Qdr1+2EFwJKeX7t+/P5M8MHtZCpKv4lpOhMj+Kt/btWYp5wL+5ZOVAirF6hpMQKUP6WoThZzLw7rZMVvjFjmp1+sDBMfiDDDm5+8n33cGGnN9FRA0AobZ3cqPg7wc1hNKxMuFItq+1dxq4cnKJuofpavyFnIVYvyobbatyoHAODlsm/Vmh4KDMDjIIqJ9P2hz2L9KiCjmSXOrYO220zlei4QXFIRDsdHYLHKAt9DsjU1k3mJxv9k8pLrBc5RFQtWj1uwdjDA4yPR6p1eV2FcC2R70jPzoqJMFQijPX+ZylHJ3UTYqlXKlVMyhjUIvBSaI9TpXJEcjeUV/nFBwzCwtjTjmKUg6/eyXNbt/2rPCRr+rcxDrJMcvFsqbNzt5BEdjazXHAfJ4W9ysoCOv9nmQH41qIIGc4M1pcIw4ZuYXFilIrrouHYSElmKaVfKsIQjfql5be/3mda4INYhSjv6XOg+AgGKr1O0P278jy7m4U1EBfL/+3eLSAqeYQe6dJ5OgkvSMsxeQXyKIg59P3rRA3v462nNfozMyxXIeYqqw9uzNqhUlNILrm4hwy6E4CPIuEi5SLjCSSaTd+ftzS/QXi2gdegtt+6WD8H69SVsab9++HZ7moBNPrwulfP5tKZfbaZRzb15S01Eu63ql320dD/UIQI6seD/s9A42FhfX11+8WEc9n0lurL9YT87MkGUQJAPoxkt/eIWHZfvNyqZ1JmV4nINeSbGzC1mb28m9fgqT5F6v5VACt4xms06GODoFOWqZzVobKffhd4sbj8I3b4YfrSeTL2I+FnpI6WuGEvBAd7mESy+GPr3fL+Z/Gx7qIZAdfiS7UGlUNvO5tecFRAmyF7yq2W/XrLpngRyDpV6rdUmPJPf2HthpLnoz/OoVP556M7WeXOJBQu2ucOm5N457OjxMZx2o+zWfz9HZ8nKRSHZe0yR0Nw/Z3jVb9TaXhCMQiEOK8Y3F6elk573LLynZdMj+KOGI0kvgb77qJHklaXfTzCNcNog26BoaP+5kgeR/K9GpDoAgsCuF/E6u0OCj9Wb9yJpWHR2NQFo1klWL0zP3Z5MdIyjKkpSQp+TYRDwWjSkBdQCQpcX3baiUyw4SQTR6A8uzuFHeFoq0t1ygLbRSGVVkN58rWh0552gPy8eQiSrH9PT8/ML0+mDfZ4skEvHolBxn4UQ8HnGpg3WK973eQA84XJf6UBQny5hH5Fm03hUK+d1yQ8dlF395my9XCltb6Ah3ee/URAkcA6G/IekiOKbnsOY5SDAly6mEIxWfiONvil8dbCAHz2z0utXY+EmlSynrWt80hsd039ExUTRPeaj1nXdoYvPoZOFVNJPmDPX6SI4A5Lg7oOC4h3X37vz0BoEkMplM3AWLxOghI7DIHpoSJOD2IHO5ICRPSPhyjgLpkd2tSqVQqGzlAFLKw9G2jG53aAVAUNeEd1ARzQHvORbu3b1z5+7cHAfxxaVoTHbIcUGSIrF0IAsQVPfk+xM07oHLfEyNm2W63arlWYXdcnm3WKJJNGpfIY+/wDalRv/EWkfHw1YW9bze7PPguHNn9t5dWGRmaXoPIIG4Qo9RgkWQvpS4AyAz9ykB93r7gUt99JkDOcs0tnZ/BwjieStf2N3N0w5go1Eqlso8V9WOLI4jUlQ0XDAPh8ExM3f7NvnVXVhkkUCCcUmKJziIJMVkrzJ4n7x/JuWFS/UsCN+t3wHy+26xYeQL5SJZgro/qPZyE2p9xHHUIt9CJ3vcgqxCjN+9fe/2nTtDksX3A93nkxVFkQS4Fj3tRXZlegfIvwuQW4d9+TIfeSgw+disbRX4MbffUMqRekuIkMpWfnNrq9TstuttrtS5S/HGvNls9yg4Zvn137t3h1Dm5maTAPH6omIwnHAChDaC4/6U2UnOACR5cNRXLhPES4M5I/9v6wjlb2gFS/CtAnXlBRRy3P2jo5E5iKJtHrZ7kFWL03T9BHKH1m0CORjobp+czWYlOvAazyrZhD9R6zxEIaFo72mX+CQnp9up97tG4d/DI5SFcgNxb6XcSsM8PB4r4bygj4LDuny+6I/Z2bvfJ6EMp6akSDgU98oJISyGY7I/Xu2so5DMT1NJnLg8EHrdVbdR3B2dl4ZJSgRSpD1ylIwxLUJVnJoO0iOA+OGHcZDbs3cRz30d1SOrKHGyCLJWVolFq70NDrLR6++7L6+OOJlUMxu7Q5Dffv+domS3sFuq9WukcodzaW6POjUdhPEDLv2H2z/Quj1727KMBbIdy0iCS8qkMrE4Pcsumk4ZVNrnCaRniJf3sFYnS7XMyi696NEyScHaI292W1ytt2kWemz5VZ2PchenZ3+4fQryAxmGmwT1sNM0siiHyLsZTVOQfWNSLGv09qbvD9vdyBdvJf4HIFncqcIpyO+75ZJebjTRMB1SeFsj3TofS/eHwQGEU4rzIPV6tVprVWu16nGveswlZa3V21sEyAxADi4RxM3UXq9csF4UwUGK+1Ua5h5ZeWq4xUxOBa+ambau+ocfPgK5N4fC3qOFt4MO3nQGA/w5QOeYHA4gAOKy2y4LBHW9vDt8lcrvu0i5w7Hb0VG9fToG5cFBlYMnK7r87/n64XsrUiyLvMfaG18b1loagUQvD4SeQnNyCoJGpNG1dp3GQY5bVnAAY3YWHLOzs9+PlmWV23egfpOLycUP1jQtKiNcbBnhSwOx0ROOTiq7py8RbDRbrRHIUZ3nqlqtx4Njaek2gcCvxjiGKLPT00hbZ2seH5ihbmtm+t7SzPTcfQLpG76JSdulgNjoUU29Qwtkt1Tp8vMKR6OG3OrI632rcsxBWVE8zA4N8k+sIctskmZYM3izzv9LztBQK5lcmqY39P4MWitUmWtfeG7gP5kxZntHAOGv0u62kW3r9fppOT88OTyErHq4OMsbjrt3LL+aHWKcokyv761vJDfWKSAQGO83pvHO3vr6XjL5fj2Jz20sLu71+tts6trlgaRMEyVwGBy8jz0+Azns8OCYn+M6nUDGzDEGktz7Edf8EEGyvrGIKwfIj3vr362/f7j3kFNsLB6c9FXmvnZZ6dfFonSWhr+mrn2CdNsanVs4Pq7VTB4c94gBKpfH+uwP4/YYwkwn329s4LLhgrjsaQ7Ccd7DLvgTH13vnPRT/JVul9VWiUa/CWHetk5Xne71t08OaWs5uTh3b+HeLI/g2R/uzFp5958fguDGJ5G0gH0Ksrj3ECD4xB63yPrAPIjaLw+ERg8DavhO2kfW4SprEHp02Bl0UDnmFu4tTS8mk8PYXbqIAyDwoSQQNgCyB6vsIUQWOVXygEfK3gsSv/6bNy8PxMOU/vEhQE5OuJ6qHx4i3CExhvsc87OLyY29vVd0yP8FCa0LQP45CwoEO+wHJ0pO03v8zTq+F4bCxx52+Bj78kBsLlvkwMT116kVpxEJQIbBMTO3MDc/s7jxfn9/m55Lqr7aA9zsRSBW9YDFlvgfvAzOzCzN0MJH59HO96oxh+cSQeyTk3q/NjrrBhCQ8N2zxaX5OYtD1/VtVfJE49vVfQr+j13r+9nhume9vUet7/zCvLWW7i89POgMtuFZdvvlgXhYpjeSVMCo1yxZhatYWJibm3n4nh6/qIWYbwJ5wdBBMnsBCS/xd0aLBnYLozW/tLQIYWymaYf6EkEc9BQwdIJcsLdrtc7pDjkuYib5/7TaPj3n2u+Y9DG1tg2Sj03yz5FWsTpGssi9cZDkgdnfF71Tjhs3Lm/bDTVRHdQAQqeNhw35Et/HhEWSDx+oUdEWTTtu3vR7XNHqsb7/fnH6QhCLghY5FtYpCAxy2H1kC7o/epXYfxfEEYFJOEh7QLLKMgaBzCQfZGEMvyMj2fGlLKXpxvH2i8+CzBIIDxJEyQIZZppS1r7omfrHdeHKpYHYLOFYq7fbh73TreUFyzNmHj7QRD9AQpqaVWKK6qMnLT5MXsAx8qvbQw5ulAXysPnF951OJ2UP/IMwLguEt7uuEExyTMExM8M3lOctp4BnPVKY56af0VPWNHVbuuJlYfVRcvpijrvDNXQtLADNk2MNtm96JicukWFUFNO945MOKsfMMGNazj2TfKhFBZfLE9L39e1tTY3c+oefZR+tT3/kV7zdPQO5d8oyP73e6fQMyeGyX6Pn8l0qyDXXte3+YYfmT+MGAcgrI0EP1VQMejjuthZn3/iFjHoexLLHRyAc5e78dPKgc9jL2PxIvBOXDWLj8X5ijQTvn+bN+9Pr+4Y2yRze7X0LRL7q+0aIq4j27z9MvReBzMzdm1583zscaDeDN6mCXDoI4j1ttk4O1meW5u+fkUyjqhtZmk1ZzytWM8wfYHHtxdIpyGm/eyHI/NziHgJED1HCuHH9K4A4aAjR6hw8tHLWCGQP8mRflSOWa+mGFmRXgpqxsfj99x907XcuALm3MEMcPeMBDHLT+TVAkINd9IRL5C1eC+8PXWvjABfPbMyhtfZ140ClR+iqBjrZD4cPdz4AQb7CH3O8ElYTdtLvjqtXLx3EahUjxuCws7dICXgIMpMECNzpluBUW8d6gtnCGR1yCyCzH9jDWiMS3lLenSGOXjNt816zOxxf4bTWMHMxyehWQbJ06lxQ3we6dNXjcLjp4fUs4Hf49wGSnB4R0JshxGgLbggCvQmOTrP76KYfdrhy7WuB8Ffw1czqAFVxeGQMQZI8MKTgVYdtUlDp1eh+e9TQ9/emp4cTxtHIdKh4z0Duzs1M8/joZpF42QT7qsvNUtVWlXvXAtdb9xam17fl8NQ/vL6AGnF4PH5BQkuSnB4Nf2/fHhrjzu1zGHfRHyffdw7bx49s/pvXL1mZXLjHUDWPO3vIXQtWUby3uP4qEXYzllZZ0P+NH0L5YH363uzpxHcMZIxjbmmROLrVR+wb+lcLsK5+ZZvIVZT499RXWWGylFxX0w/SKmKF2R3XHryCyr9391SwD3d5aGeXj76G9phZXD/oVHvEwSm+tkV4nBwgdx2so9GlKIFzJV+9ek8nMQ01EZFfvQIHQGZnb/PRKSFYZhlKK6JBOd/onFQH7yFvPMRx/euD0EMj6AGkEJBLQIEOR0+ycTCg9DM40LbRA9+5i2ufmZm9zS+c9+i08zPSu6Mwrw70Bwz148YNu439FcvNovrgpNNBg8WHB5Cvi+t7B7T2NpJLs0u4WNz/6Ts/gGJudhocHGcEcoe71fFhbztEHDcdfxUI87Gg1juuUaDMz89A9yELLyYfvnjx4+Li4tIMpP4izXr4vAcL70/j/zOgoeqxQG7VOezXVf9N4kBF/6tABL99QjXNQzoXTid/aB4yR5P29e9o0k5zNxq50RiR3rF2pZKzczOQKAv3KOtCJhopxjkcjkmH/S8iERwev0056B2bdPjn3gL5C7w+uUjbBDRz/3Fvg78HmPfJh3tJ0PxIIEhcMAdyRZOegcrNMQS5xCnQ55adnm8n6f3WIR83QosvQI0naQ8EUUIEext8vr5Hg9G95Hf0YYCQB+51zMPBgXoT5nA4bgBj8i8FcTgCDlFt99DG06huYWYuOQRZhwnWYQILZO8hLp22RJKIpyUyR6/ZpSeucls4bjgJxP6XgfAnc3hsLGUMzPaAImVmJmm51vsfk+t7i9P8veTG3vr77xaREzb2ftwAxvr7nlnt11Q/c/EHzP1FMX6+PbExwcMiWrfbsrasrNE6hTVu//Q0H7zTNgLCPblEH/4OXtUxu/RUYjSDNnpM3l8PMvQwF7NnjEGLJto/Li7R5giy7DSS7TRKN/0F/y0toXDCGj9uHHQOzYGhiuBwOf4+FNwuHg8La+0+jVE3aIy6gKhfQCe+NIeoWZi/N7c0Pzczs7RAXtVpH/VNTQLGTY/L/jfC4Nty6OSZrMPz+WumptHBUqkfjqzmF1ArIS1nETKdvtkcGBk74/9QlIP9/ZYzwMSsMejVeh3ajgLI3Nz4HHGOp9xe1UTODdk8fsdf+68Bf47Ez1hUq/Vrx52DvYfT0/MLc6dr4d7s4kMEx3FrQF7Fa8ffFkS44gBKXO9RUaENoLl75F6wxsL9GUiVg85Juz/QZTvtPNv/bsHxQVVx+RjL7Pd7/Bggna1ZQLGnOg4MtOX9/Uc3bbTNSTmX/a3XpEegUOl3ayeWVSAjp4cYAyMrcq/6+2NwD0PbHgJKr3oyOECFtKxRNfuGGmYOD0mS/w0QRpWehVWjb9bhYXscowOMCLcGgdiu2q5+9Yb2P0MJCiycNXq9zkmvZx52kHGj9psB/03XpBUf/ysgbNIbIAfb7w3MVh9yJGpDjHs8Nx3/ayD0MJ8p+nfa9RZ3Kkb/LtiNG45h3v3fgBitCYdvkrnT2TBjU0674yq7etV6jN0lgfx/tWPx9yoB3o8AAAAASUVORK5CYII=" alt="Escudo de la Institución Educativa 24 de Mayo" width="200" height="168">
+    <div class="texto">
+      <span class="cole">Institución Educativa 24 de Mayo</span>
+      <span class="evento">Feria de la Ciencia, la Tecnología y la Creatividad · 2026</span>
+      <span class="autor">Juego generado con el prompt diseñado por <b>Jesús David Galarcio Noguera</b>, docente asesor del proyecto.</span>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   Conjugatón — juego generado con el prompt del proyecto de feria.
+   Conjugación de verbos en español, de sexto a noveno.
+   Español de Colombia: se usa tú y usted, nunca vosotros.
+   Todas las formas salen del banco de verbos de más abajo, que está
+   verificado: el juego nunca inventa una conjugación.
+   ============================================================ */
+
+const $ = (id) => document.getElementById(id);
+const az = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+const revuelve = (v) => v.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(p => p[1]);
+const alAzar = (v) => v[az(0, v.length - 1)];
+
+function opciones(correcta, malas) {
+  const vistos = new Set([correcta]);
+  const lista = [correcta];
+  for (const m of malas) {
+    if (lista.length >= 4) break;
+    if (m && !vistos.has(m)) { vistos.add(m); lista.push(m); }
+  }
+  return revuelve(lista);
+}
+
+/* ---------- las personas gramaticales ---------- */
+const PERSONAS = ["yo", "tú", "él", "nosotros", "ellos"];
+const MUESTRA_PERSONA = ["yo", "tú", "ella", "nosotros", "ellos"];
+
+/* ---------- terminaciones de los verbos regulares ----------
+   Son las reglas que permiten conjugar cualquier verbo regular. */
+const TERM = {
+  presente: { ar:["o","as","a","amos","an"], er:["o","es","e","emos","en"], ir:["o","es","e","imos","en"] },
+  pasado:   { ar:["é","aste","ó","amos","aron"], er:["í","iste","ió","imos","ieron"], ir:["í","iste","ió","imos","ieron"] },
+  imperfecto:{ar:["aba","abas","aba","ábamos","aban"], er:["ía","ías","ía","íamos","ían"], ir:["ía","ías","ía","íamos","ían"] },
+  subjuntivo:{ar:["e","es","e","emos","en"], er:["a","as","a","amos","an"], ir:["a","as","a","amos","an"] }
+};
+const FUT = ["é","ás","á","emos","án"];
+const PART = { ar:"ado", er:"ido", ir:"ido" };
+
+/* ---------- verbos completamente regulares ----------
+   Se excluyeron a propósito los que cambian de raíz (jugar, pensar, contar)
+   y los que cambian de letra al escribirse (buscar, llegar, empezar, leer). */
+const REGULARES = [
+  "cantar","caminar","estudiar","trabajar","saltar","bailar","hablar","comprar","llevar","mirar",
+  "nadar","lavar","pintar","preguntar","escuchar","ayudar","terminar","visitar","dibujar","cocinar",
+  "comer","beber","aprender","temer","vender","comprender","deber","meter","correr","prometer",
+  "responder","sorprender","vivir","subir","partir","recibir","unir","decidir","permitir","existir",
+  "insistir","discutir","admitir","cumplir","asistir"
+];
+const grupo = (inf) => inf.slice(-2);
+const raiz  = (inf) => inf.slice(0, -2);
+
+function conjugaRegular(inf, tiempo, p) {
+  if (tiempo === "futuro") return inf + FUT[p];
+  return raiz(inf) + TERM[tiempo][grupo(inf)][p];
+}
+
+/* ---------- verbos irregulares, escritos uno por uno ---------- */
+const IRREGULARES = {
+  ser:     { presente:["soy","eres","es","somos","son"], pasado:["fui","fuiste","fue","fuimos","fueron"], imperfecto:["era","eras","era","éramos","eran"], futuro:["seré","serás","será","seremos","serán"], participio:"sido", subjuntivo:["sea","seas","sea","seamos","sean"] },
+  ir:      { presente:["voy","vas","va","vamos","van"], pasado:["fui","fuiste","fue","fuimos","fueron"], imperfecto:["iba","ibas","iba","íbamos","iban"], futuro:["iré","irás","irá","iremos","irán"], participio:"ido", subjuntivo:["vaya","vayas","vaya","vayamos","vayan"] },
+  estar:   { presente:["estoy","estás","está","estamos","están"], pasado:["estuve","estuviste","estuvo","estuvimos","estuvieron"], imperfecto:["estaba","estabas","estaba","estábamos","estaban"], futuro:["estaré","estarás","estará","estaremos","estarán"], participio:"estado", subjuntivo:["esté","estés","esté","estemos","estén"] },
+  tener:   { presente:["tengo","tienes","tiene","tenemos","tienen"], pasado:["tuve","tuviste","tuvo","tuvimos","tuvieron"], imperfecto:["tenía","tenías","tenía","teníamos","tenían"], futuro:["tendré","tendrás","tendrá","tendremos","tendrán"], participio:"tenido", subjuntivo:["tenga","tengas","tenga","tengamos","tengan"] },
+  hacer:   { presente:["hago","haces","hace","hacemos","hacen"], pasado:["hice","hiciste","hizo","hicimos","hicieron"], imperfecto:["hacía","hacías","hacía","hacíamos","hacían"], futuro:["haré","harás","hará","haremos","harán"], participio:"hecho", subjuntivo:["haga","hagas","haga","hagamos","hagan"] },
+  poder:   { presente:["puedo","puedes","puede","podemos","pueden"], pasado:["pude","pudiste","pudo","pudimos","pudieron"], imperfecto:["podía","podías","podía","podíamos","podían"], futuro:["podré","podrás","podrá","podremos","podrán"], participio:"podido", subjuntivo:["pueda","puedas","pueda","podamos","puedan"] },
+  querer:  { presente:["quiero","quieres","quiere","queremos","quieren"], pasado:["quise","quisiste","quiso","quisimos","quisieron"], imperfecto:["quería","querías","quería","queríamos","querían"], futuro:["querré","querrás","querrá","querremos","querrán"], participio:"querido", subjuntivo:["quiera","quieras","quiera","queramos","quieran"] },
+  decir:   { presente:["digo","dices","dice","decimos","dicen"], pasado:["dije","dijiste","dijo","dijimos","dijeron"], imperfecto:["decía","decías","decía","decíamos","decían"], futuro:["diré","dirás","dirá","diremos","dirán"], participio:"dicho", subjuntivo:["diga","digas","diga","digamos","digan"] },
+  venir:   { presente:["vengo","vienes","viene","venimos","vienen"], pasado:["vine","viniste","vino","vinimos","vinieron"], imperfecto:["venía","venías","venía","veníamos","venían"], futuro:["vendré","vendrás","vendrá","vendremos","vendrán"], participio:"venido", subjuntivo:["venga","vengas","venga","vengamos","vengan"] },
+  saber:   { presente:["sé","sabes","sabe","sabemos","saben"], pasado:["supe","supiste","supo","supimos","supieron"], imperfecto:["sabía","sabías","sabía","sabíamos","sabían"], futuro:["sabré","sabrás","sabrá","sabremos","sabrán"], participio:"sabido", subjuntivo:["sepa","sepas","sepa","sepamos","sepan"] },
+  poner:   { presente:["pongo","pones","pone","ponemos","ponen"], pasado:["puse","pusiste","puso","pusimos","pusieron"], imperfecto:["ponía","ponías","ponía","poníamos","ponían"], futuro:["pondré","pondrás","pondrá","pondremos","pondrán"], participio:"puesto", subjuntivo:["ponga","pongas","ponga","pongamos","pongan"] },
+  salir:   { presente:["salgo","sales","sale","salimos","salen"], pasado:["salí","saliste","salió","salimos","salieron"], imperfecto:["salía","salías","salía","salíamos","salían"], futuro:["saldré","saldrás","saldrá","saldremos","saldrán"], participio:"salido", subjuntivo:["salga","salgas","salga","salgamos","salgan"] },
+  dar:     { presente:["doy","das","da","damos","dan"], pasado:["di","diste","dio","dimos","dieron"], imperfecto:["daba","dabas","daba","dábamos","daban"], futuro:["daré","darás","dará","daremos","darán"], participio:"dado", subjuntivo:["dé","des","dé","demos","den"] },
+  ver:     { presente:["veo","ves","ve","vemos","ven"], pasado:["vi","viste","vio","vimos","vieron"], imperfecto:["veía","veías","veía","veíamos","veían"], futuro:["veré","verás","verá","veremos","verán"], participio:"visto", subjuntivo:["vea","veas","vea","veamos","vean"] },
+  andar:   { presente:["ando","andas","anda","andamos","andan"], pasado:["anduve","anduviste","anduvo","anduvimos","anduvieron"], imperfecto:["andaba","andabas","andaba","andábamos","andaban"], futuro:["andaré","andarás","andará","andaremos","andarán"], participio:"andado", subjuntivo:["ande","andes","ande","andemos","anden"] },
+  traer:   { presente:["traigo","traes","trae","traemos","traen"], pasado:["traje","trajiste","trajo","trajimos","trajeron"], imperfecto:["traía","traías","traía","traíamos","traían"], futuro:["traeré","traerás","traerá","traeremos","traerán"], participio:"traído", subjuntivo:["traiga","traigas","traiga","traigamos","traigan"] },
+  conducir:{ presente:["conduzco","conduces","conduce","conducimos","conducen"], pasado:["conduje","condujiste","condujo","condujimos","condujeron"], imperfecto:["conducía","conducías","conducía","conducíamos","conducían"], futuro:["conduciré","conducirás","conducirá","conduciremos","conducirán"], participio:"conducido", subjuntivo:["conduzca","conduzcas","conduzca","conduzcamos","conduzcan"] },
+  caber:   { presente:["quepo","cabes","cabe","cabemos","caben"], pasado:["cupe","cupiste","cupo","cupimos","cupieron"], imperfecto:["cabía","cabías","cabía","cabíamos","cabían"], futuro:["cabré","cabrás","cabrá","cabremos","cabrán"], participio:"cabido", subjuntivo:["quepa","quepas","quepa","quepamos","quepan"] }
+};
+const LISTA_IRR = Object.keys(IRREGULARES);
+
+/* Verbos regulares en todo menos en el participio */
+const PART_IRREGULAR = { escribir:"escrito", abrir:"abierto", cubrir:"cubierto", romper:"roto",
+  volver:"vuelto", resolver:"resuelto", morir:"muerto", hacer:"hecho", decir:"dicho",
+  poner:"puesto", ver:"visto" };
+
+/* Forma de cualquier verbo del banco, regular o irregular */
+function forma(inf, tiempo, p) {
+  if (IRREGULARES[inf]) return IRREGULARES[inf][tiempo][p];
+  return conjugaRegular(inf, tiempo, p);
+}
+function participio(inf) {
+  if (PART_IRREGULAR[inf]) return PART_IRREGULAR[inf];
+  if (IRREGULARES[inf]) return IRREGULARES[inf].participio;
+  return raiz(inf) + PART[grupo(inf)];
+}
+const HABER = ["he","has","ha","hemos","han"];
+
+/* ---------- material para armar oraciones ---------- */
+const SUJETOS = [
+  ["Mi hermana", 2], ["El profesor", 2], ["Los estudiantes", 4], ["Camila", 2],
+  ["Nosotros", 3], ["Mi papá", 2], ["La niña", 2], ["Mis primos", 4], ["Tú", 1], ["Yo", 0]
+];
+/* El nivel 1 usa oraciones con la estructura más básica: sujeto + verbo + complemento.
+   Cada verbo trae solo complementos que combinan bien con él, y ninguno lleva pronombre
+   reflexivo, para que la oración concuerde con cualquier sujeto. */
+const ESCENAS = [
+  { inf:"cantar",   comps:["una canción alegre", "en el coro del colegio"] },
+  { inf:"estudiar", comps:["la lección de hoy", "para el examen de mañana"] },
+  { inf:"dibujar",  comps:["un paisaje bonito", "el mapa de Colombia"] },
+  { inf:"comprar",  comps:["un cuaderno nuevo", "pan en la tienda"] },
+  { inf:"lavar",    comps:["los platos sucios", "la ropa del colegio"] },
+  { inf:"cocinar",  comps:["un arroz delicioso", "el almuerzo del domingo"] },
+  { inf:"escuchar", comps:["música vallenata", "la explicación del profesor"] },
+  { inf:"pintar",   comps:["la pared del salón", "un cuadro grande"] },
+  { inf:"caminar",  comps:["hasta la esquina", "por el parque central"] },
+  { inf:"nadar",    comps:["en el río Sinú", "muy rápido"] },
+  { inf:"saltar",   comps:["la cuerda azul", "en el patio grande"] },
+  { inf:"bailar",   comps:["un porro alegre", "en la fiesta del colegio"] },
+  { inf:"hablar",   comps:["con el profesor nuevo", "muy despacio"] },
+  { inf:"correr",   comps:["en la cancha del barrio", "muy rápido"] },
+  { inf:"comer",    comps:["un mango maduro", "arroz con pollo"] },
+  { inf:"beber",    comps:["un jugo de corozo", "agua bien fría"] },
+  { inf:"aprender", comps:["una canción nueva", "las reglas del juego"] },
+  { inf:"vender",   comps:["frutas en el mercado"] },
+  { inf:"vivir",    comps:["cerca del colegio", "en Cereté"] },
+  { inf:"subir",    comps:["las escaleras del colegio"] },
+  { inf:"recibir",  comps:["un regalo bonito"] },
+  { inf:"escribir", comps:["una carta larga", "la tarea en el cuaderno"] }
+];
+
+/* ---------- almacenamiento ---------- */
+const CLAVE = "conjugaton.v1";
+let bd = { registros: [], mudo: false };
+function cargar() {
+  try {
+    const crudo = localStorage.getItem(CLAVE);
+    if (crudo) { const d = JSON.parse(crudo); if (d && Array.isArray(d.registros)) bd = { registros:d.registros, mudo:!!d.mudo }; }
+  } catch (e) { /* almacenamiento bloqueado: el juego funciona igual */ }
+}
+function guardar() { try { localStorage.setItem(CLAVE, JSON.stringify(bd)); } catch (e) {} }
+
+/* ---------- sonido ---------- */
+let audio = null;
+function pito(frecuencias, dur) {
+  if (bd.mudo) return;
+  try {
+    if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+    frecuencias.forEach((f, i) => {
+      const osc = audio.createOscillator(), vol = audio.createGain();
+      osc.type = "sine"; osc.frequency.value = f;
+      const t = audio.currentTime + i * dur;
+      vol.gain.setValueAtTime(0.0001, t);
+      vol.gain.exponentialRampToValueAtTime(0.18, t + 0.02);
+      vol.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.connect(vol); vol.connect(audio.destination);
+      osc.start(t); osc.stop(t + dur + 0.02);
+    });
+  } catch (e) {}
+}
+const sonBien = () => pito([660, 880], 0.12);
+const sonMal  = () => pito([240, 180], 0.16);
+const sonNivel = () => pito([523, 659, 784, 1047], 0.13);
+
+/* ============================================================
+   LOS 10 NIVELES, de lo más fácil a lo más difícil
+   ============================================================ */
+const NIVELES = [
+
+  { /* 1 */ titulo:"Encuentra el verbo", resumen:"Y di su infinitivo", familia:"base",
+    concepto:`<p>El <b>verbo</b> es la palabra que dice qué pasa en la oración: lo que alguien hace, siente o es.</p><p>Su forma básica, la que aparece en el diccionario, se llama <b>infinitivo</b> y siempre termina en <b>-ar</b>, <b>-er</b> o <b>-ir</b>.</p>`,
+    ejemplo:`<p>Oración: <b>Mi hermana canta en el patio.</b></p><p>¿Qué hace mi hermana? Canta. Esa es la acción, así que <b>canta</b> es el verbo.</p><p>Su infinitivo es <b>cantar</b>.</p>`,
+    gen() {
+      const esc = alAzar(ESCENAS), inf = esc.inf;
+      const [suj, p] = alAzar(SUJETOS);
+      const f = forma(inf, "presente", p), comp = alAzar(esc.comps);
+      // los distractores son las demás palabras de la misma oración
+      const palabras = (suj + " " + comp).split(" ")
+        .map(w => w.replace(/[.,]/g, "")).filter(w => w.length >= 2);
+      if (Math.random() < 0.5) {
+        return { etiqueta:"Oración", muestra:`${suj} ${f} ${comp}.`,
+          texto:"¿Cuál es el verbo de esta oración?", resp:[f], tipo:"opciones",
+          ops:opciones(f, revuelve(palabras)),
+          clave:`${f} es lo que hace el sujeto, así que es el verbo.`,
+          pasos:[`Me pregunto qué pasa en la oración.`, `La acción es "${f}".`,
+                 `Las demás palabras dicen quién o dónde, pero no son la acción.`] };
+      }
+      return { etiqueta:"Oración", muestra:`${suj} ${f} ${comp}.`,
+        texto:`¿Cuál es el infinitivo del verbo "${f}"?`, resp:[inf], tipo:"opciones",
+        ops:opciones(inf, revuelve(REGULARES.concat(LISTA_IRR)).filter(v => v !== inf).slice(0, 3)),
+        clave:`"${f}" viene del verbo ${inf}.`,
+        pasos:[`El verbo conjugado es "${f}".`, `Su forma básica, la del diccionario, es ${inf}.`,
+               `Todos los infinitivos terminan en -ar, -er o -ir.`] };
+    }
+  },
+
+  { /* 2 */ titulo:"Las tres conjugaciones", resumen:"Raíz y terminación", familia:"base",
+    concepto:`<p>Según cómo termine su infinitivo, cada verbo pertenece a una conjugación: <b>primera</b> si termina en -ar, <b>segunda</b> si termina en -er y <b>tercera</b> si termina en -ir.</p><p>Al quitarle esas dos letras queda la <b>raíz</b>, que es la parte que casi nunca cambia. Lo que se le agrega es la <b>terminación</b>.</p>`,
+    ejemplo:`<p>Verbo: <b>comer</b></p><p>Termina en -er, así que es de la <b>segunda conjugación</b>.</p><p>Raíz: <b>com-</b> · Terminación: <b>-er</b></p>`,
+    gen() {
+      const inf = alAzar(REGULARES);
+      const nombres = { ar:"Primera (-ar)", er:"Segunda (-er)", ir:"Tercera (-ir)" };
+      if (Math.random() < 0.5) {
+        const r = nombres[grupo(inf)];
+        return { etiqueta:"Verbo", muestra:inf, texto:"¿A qué conjugación pertenece?",
+          resp:[r], tipo:"opciones", ops:revuelve(Object.values(nombres)),
+          clave:`${inf} termina en -${grupo(inf)}.`,
+          pasos:[`Miro las dos últimas letras del infinitivo: -${grupo(inf)}.`, `Por eso pertenece a la ${r.toLowerCase()}.`] };
+      }
+      const r = raiz(inf);
+      return { etiqueta:"Verbo", muestra:inf, texto:"¿Cuál es la raíz de este verbo?",
+        resp:[r], tipo:"opciones",
+        ops:opciones(r, [inf, inf.slice(0, -1), r + inf.slice(-1), r.slice(0, -1)]),
+        clave:`La raíz es lo que queda al quitar la terminación -${grupo(inf)}.`,
+        pasos:[`Le quito la terminación -${grupo(inf)} a ${inf}.`, `Queda la raíz: ${r}.`,
+               `Esa parte se mantiene cuando el verbo se conjuga.`] };
+    }
+  },
+
+  { /* 3 */ titulo:"Persona y número", resumen:"Concordar con el sujeto", familia:"base",
+    concepto:`<p>El verbo cambia según <b>quién</b> hace la acción y según si es <b>uno o varios</b>.</p><p>En Colombia usamos yo, tú, usted, él o ella, nosotros, ustedes y ellos. El verbo tiene que concordar con el sujeto: si el sujeto es uno, el verbo va en singular.</p>`,
+    ejemplo:`<p>Verbo: <b>cantar</b>, en presente.</p><p>yo canto · tú cantas · ella canta · nosotros cantamos · ellos cantan</p><p>Para <b>nosotros</b> le corresponde <b>cantamos</b>.</p>`,
+    gen() {
+      const inf = alAzar(REGULARES), p = az(0, 4);
+      const buena = forma(inf, "presente", p);
+      const otras = [0,1,2,3,4].filter(k => k !== p).map(k => forma(inf, "presente", k));
+      return { etiqueta:"Completa", muestra:`${MUESTRA_PERSONA[p]} <span class="hueco"></span> (${inf})`,
+        texto:"¿Qué forma concuerda con el sujeto?", resp:[buena], tipo:"opciones",
+        ops:opciones(buena, revuelve(otras)), html:true,
+        clave:`Con "${MUESTRA_PERSONA[p]}" va ${buena}.`,
+        pasos:[`El sujeto es "${MUESTRA_PERSONA[p]}".`, `En presente, ${inf} se conjuga así: ` +
+               PERSONAS.map((x,k) => `${MUESTRA_PERSONA[k]} ${forma(inf,"presente",k)}`).join(" · "),
+               `La forma que concuerda es ${buena}.`] };
+    }
+  },
+
+  { /* 4 */ titulo:"Presente", resumen:"Verbos regulares", familia:"tiempo", escribir:true, ayuda:true,
+    concepto:`<p>El <b>presente</b> dice lo que pasa ahora o lo que pasa siempre.</p><p>Para formarlo se le quita la terminación al infinitivo y se le agrega la del presente, según la conjugación. Puedes ver los modelos con el botón de ayuda.</p>`,
+    ejemplo:`<p>Verbo <b>beber</b>, para <b>nosotros</b>.</p><p>Raíz: beb- · Es de la segunda conjugación (-er).</p><p>La terminación del presente para nosotros es <b>-emos</b>.</p><p>Resultado: <b>bebemos</b></p>`,
+    gen() {
+      const inf = alAzar(REGULARES), p = az(0, 4);
+      const r = forma(inf, "presente", p);
+      return { etiqueta:"Escribe la forma", muestra:`${MUESTRA_PERSONA[p]} ___ (${inf})`,
+        texto:`Conjuga ${inf} en presente para "${MUESTRA_PERSONA[p]}".`, resp:[r], tipo:"escribir",
+        clave:`${MUESTRA_PERSONA[p]} ${r}.`,
+        pasos:[`Raíz de ${inf}: ${raiz(inf)}`,
+               `Terminación del presente para "${MUESTRA_PERSONA[p]}" en los verbos en -${grupo(inf)}: -${TERM.presente[grupo(inf)][p]}`,
+               `${raiz(inf)} + ${TERM.presente[grupo(inf)][p]} = ${r}`] };
+    }
+  },
+
+  { /* 5 */ titulo:"Pasado", resumen:"Y la tilde que cambia todo", familia:"tiempo", escribir:true, ayuda:true,
+    concepto:`<p>El <b>pretérito perfecto simple</b> cuenta algo que ya terminó: <i>ayer canté</i>.</p><p>Fíjate bien en la tilde, porque cambia el significado y la persona: <b>yo canto</b> es presente, pero <b>él cantó</b> es pasado.</p>`,
+    ejemplo:`<p>Verbo <b>vivir</b>, para <b>ella</b>, en pasado.</p><p>Raíz: viv- · Es de la tercera conjugación (-ir).</p><p>La terminación del pasado para ella es <b>-ió</b>.</p><p>Resultado: <b>vivió</b>, con tilde.</p>`,
+    gen() {
+      const inf = alAzar(REGULARES), p = az(0, 4);
+      const r = forma(inf, "pasado", p);
+      if (Math.random() < 0.35 && grupo(inf) === "ar") {
+        const presente = forma(inf, "presente", 0), pasado = forma(inf, "pasado", 2);
+        const cual = Math.random() < 0.5;
+        const buena = cual ? presente : pasado;
+        return { etiqueta:"Elige", muestra:cual ? `yo ___ ahora mismo` : `ella ___ ayer`,
+          texto:`¿Qué forma de ${inf} va en esta oración?`, resp:[buena], tipo:"opciones",
+          ops:opciones(buena, [cual ? pasado : presente, forma(inf,"pasado",0), forma(inf,"presente",2)]),
+          clave:cual ? `Sin tilde y con o: "${presente}" es presente y es para yo.` : `Con tilde: "${pasado}" es pasado y es para ella.`,
+          pasos:[`"${presente}" sin tilde es presente y corresponde a yo.`,
+                 `"${pasado}" con tilde es pasado y corresponde a él o ella.`,
+                 `Aquí la oración pide ${cual ? "presente, para yo" : "pasado, para ella"}: ${buena}.`] };
+      }
+      return { etiqueta:"Escribe la forma", muestra:`${MUESTRA_PERSONA[p]} ___ ayer (${inf})`,
+        texto:`Conjuga ${inf} en pasado para "${MUESTRA_PERSONA[p]}".`, resp:[r], tipo:"escribir",
+        clave:`${MUESTRA_PERSONA[p]} ${r}.`,
+        pasos:[`Raíz de ${inf}: ${raiz(inf)}`,
+               `Terminación del pasado para "${MUESTRA_PERSONA[p]}" en los verbos en -${grupo(inf)}: -${TERM.pasado[grupo(inf)][p]}`,
+               `${raiz(inf)} + ${TERM.pasado[grupo(inf)][p]} = ${r}`] };
+    }
+  },
+
+  { /* 6 */ titulo:"Pasado, antes y después", resumen:"Imperfecto y futuro", familia:"tiempo", ayuda:true,
+    concepto:`<p>Tres tiempos cuentan cosas distintas:</p><p><b>Pretérito perfecto simple</b> (canté): algo que pasó una vez y ya terminó.<br><b>Pretérito imperfecto</b> (cantaba): algo que se repetía o duraba en el pasado.<br><b>Futuro</b> (cantaré): algo que todavía no pasa.</p><p>Las palabras de la oración te dicen cuál va: <i>ayer</i>, <i>antes</i>, <i>mañana</i>.</p>`,
+    ejemplo:`<p><b>Cuando era niño, todos los días ___ en el río. (nadar)</b></p><p>"Todos los días" indica algo repetido en el pasado, así que va el imperfecto.</p><p>Resultado: <b>nadaba</b></p>`,
+    gen() {
+      const inf = alAzar(REGULARES), p = az(0, 4);
+      const casos = [
+        ["pasado", alAzar(["Ayer","La semana pasada","Anoche","El lunes pasado"]), "algo que pasó una vez y ya terminó"],
+        ["imperfecto", alAzar(["Antes, todos los días","En esas vacaciones, todos los días","Todas las tardes de ese año","Siempre, en esa época,"]), "algo que se repetía en el pasado"],
+        ["futuro", alAzar(["Mañana","La próxima semana","El año entrante","Dentro de poco"]), "algo que todavía no pasa"]
+      ];
+      const [t, marca, porque] = alAzar(casos);
+      const buena = forma(inf, t, p);
+      const otras = ["pasado","imperfecto","futuro"].filter(x => x !== t).map(x => forma(inf, x, p));
+      return { etiqueta:"Completa", muestra:`${marca} ${MUESTRA_PERSONA[p]} <span class="hueco"></span> (${inf})`, html:true,
+        texto:"¿Qué forma pide la oración?", resp:[buena], tipo:"opciones",
+        ops:opciones(buena, otras.concat([forma(inf, t, (p + 1) % 5)])),
+        clave:`"${marca}" indica ${porque}.`,
+        pasos:[`La pista está en "${marca}": señala ${porque}.`,
+               `Ese tiempo es el ${t === "pasado" ? "pretérito perfecto simple" : t === "imperfecto" ? "pretérito imperfecto" : "futuro"}.`,
+               `Para "${MUESTRA_PERSONA[p]}", ${inf} queda ${buena}.`] };
+    }
+  },
+
+  { /* 7 */ titulo:"Verbos irregulares", resumen:"Los que no siguen la regla", familia:"irreg", ayuda:true,
+    concepto:`<p>Algunos verbos de uso diario no siguen el modelo: les cambia la raíz. Son los <b>irregulares</b>.</p><p>El error típico es tratarlos como regulares. Se dice <b>anduve</b>, no "andé"; <b>conduje</b>, no "conducí"; <b>cupo</b>, no "cabió".</p>`,
+    ejemplo:`<p>Verbo <b>tener</b>, para <b>yo</b>, en pasado.</p><p>Si fuera regular diría "tení", pero tener es irregular.</p><p>La forma correcta es <b>tuve</b>.</p>`,
+    gen() {
+      const inf = alAzar(LISTA_IRR), p = az(0, 4);
+      const t = alAzar(["presente", "pasado", "futuro"]);
+      const buena = forma(inf, t, p);
+      // el distractor principal es tratar el verbo como si fuera regular
+      const comoRegular = t === "futuro" ? inf + FUT[p]
+        : raiz(inf) + (TERM[t][grupo(inf)] || TERM[t].er)[p];
+      const otras = [0,1,2,3,4].filter(k => k !== p).map(k => forma(inf, t, k));
+      const nombreT = t === "pasado" ? "pasado" : t;
+      return { etiqueta:"Elige la forma correcta", muestra:`${MUESTRA_PERSONA[p]} <span class="hueco"></span> (${inf}, ${nombreT})`, html:true,
+        texto:"¿Cómo se conjuga este verbo irregular?", resp:[buena], tipo:"opciones",
+        ops:opciones(buena, [comoRegular].concat(revuelve(otras))),
+        clave:`${inf} es irregular: ${MUESTRA_PERSONA[p]} ${buena}.`,
+        pasos:[`${inf} no sigue el modelo de los verbos regulares.`,
+               comoRegular !== buena ? `Si lo trataras como regular dirías "${comoRegular}", y eso es incorrecto.` : `Hay que aprenderse su forma.`,
+               `En ${nombreT}, ${inf} se conjuga: ` + PERSONAS.map((x,k) => `${MUESTRA_PERSONA[k]} ${forma(inf,t,k)}`).join(" · ")] };
+    }
+  },
+
+  { /* 8 */ titulo:"Tiempos compuestos", resumen:"Haber más participio", familia:"irreg",
+    concepto:`<p>Los tiempos compuestos se arman con el verbo <b>haber</b> conjugado más el <b>participio</b> del otro verbo: <i>he cantado</i>, <i>has comido</i>.</p><p>El participio regular termina en <b>-ado</b> o <b>-ido</b>, pero hay unos cuantos irregulares que hay que saberse: escrito, hecho, puesto, visto, vuelto, dicho, abierto, roto.</p>`,
+    ejemplo:`<p>Verbo <b>escribir</b>, para <b>yo</b>.</p><p>Haber para yo es <b>he</b>.</p><p>El participio de escribir no es "escribido": es <b>escrito</b>.</p><p>Resultado: <b>he escrito</b></p>`,
+    gen() {
+      const usaIrregular = Math.random() < 0.55;
+      const inf = usaIrregular ? alAzar(Object.keys(PART_IRREGULAR)) : alAzar(REGULARES);
+      const p = az(0, 4);
+      const buena = participio(inf);
+      const falso = raiz(inf) + PART[grupo(inf)];
+      return { etiqueta:"Completa", muestra:`${MUESTRA_PERSONA[p]} ${HABER[p]} <span class="hueco"></span> (${inf})`, html:true,
+        texto:"¿Cuál es el participio de este verbo?", resp:[buena], tipo:"opciones",
+        ops:opciones(buena, [falso,
+          raiz(inf) + (grupo(inf) === "ar" ? "ando" : "iendo"),
+          raiz(inf) + (grupo(inf) === "ar" ? "ido" : "ado"), inf]),
+        clave:`Se dice "${HABER[p]} ${buena}".`,
+        pasos:[`El verbo haber para "${MUESTRA_PERSONA[p]}" es "${HABER[p]}".`,
+               usaIrregular ? `El participio de ${inf} es irregular: ${buena}, no "${falso}".`
+                            : `El participio de ${inf} es regular: ${buena}.`,
+               `La forma completa es "${MUESTRA_PERSONA[p]} ${HABER[p]} ${buena}".`] };
+    }
+  },
+
+  { /* 9 */ titulo:"Órdenes y deseos", resumen:"Imperativo y subjuntivo", familia:"avanz",
+    concepto:`<p>El <b>imperativo</b> sirve para dar órdenes o pedir algo: <i>ven</i>, <i>siéntese</i>, <i>cállense</i>. Cuando la orden es a varias personas y lleva el pronombre <i>se</i>, no se le agrega una n al final: es <b>siéntense</b>, no "siéntensen".</p><p>El <b>subjuntivo</b> aparece después de expresiones de deseo o duda: <i>quiero que vengas</i>, <i>ojalá pueda</i>, <i>cuando llegues</i>.</p>`,
+    ejemplo:`<p><b>Quiero que tú ___ temprano. (venir)</b></p><p>Después de "quiero que" el verbo va en subjuntivo, no en presente normal.</p><p>No es "vienes": es <b>vengas</b>.</p>`,
+    gen() {
+      const banco = [
+        ["Quiero que tú ___ temprano.", "venir", "vengas", ["vienes","vendrás","viniste"], "Después de «quiero que» el verbo va en subjuntivo."],
+        ["Ojalá ella ___ ir con nosotros.", "poder", "pueda", ["puede","podrá","pudo"], "«Ojalá» siempre pide subjuntivo."],
+        ["Espero que ustedes ___ la tarea.", "hacer", "hagan", ["hacen","harán","hicieron"], "Después de «espero que» va subjuntivo."],
+        ["Cuando ___ a la casa, me avisas.", "llegar", "llegues", ["llegas","llegaste","llegarás"], "«Cuando» referido al futuro pide subjuntivo."],
+        ["Dile que ___ la verdad.", "decir", "diga", ["dice","dirá","dijo"], "Después de «dile que» va subjuntivo."],
+        ["No creo que ___ tiempo.", "haber", "haya", ["haiga","había","habrá"], "Se dice «haya». «Haiga» no existe en español correcto."],
+        ["Profesor, ___ un momento, por favor.", "esperar", "espere", ["esperes","esperas","esperen"], "A usted le corresponde «espere»."],
+        ["Niños, ___ en silencio.", "sentarse", "siéntense", ["siéntensen","siéntese","sentensen"], "El imperativo de ustedes es «siéntense», sin n al final."],
+        ["Muchachos, ___ un momento.", "callarse", "cállense", ["callensen","cállensen","cállese"], "Es «cállense», sin n extra y con tilde."],
+        ["Es importante que tú ___ a clase.", "asistir", "asistas", ["asistes","asististe","asistirás"], "«Es importante que» pide subjuntivo."],
+        ["Ojalá no ___ mañana.", "llover", "llueva", ["llueve","lloverá","llovió"], "«Ojalá» pide subjuntivo: llueva."],
+        ["Señora, ___ cómoda, por favor.", "ponerse", "póngase", ["pongase","póngasen","ponte"], "El imperativo de usted lleva tilde: «póngase»."],
+        ["Es necesario que ustedes ___ temprano.", "llegar", "lleguen", ["llegan","llegarán","llegaron"], "«Es necesario que» pide subjuntivo. Fíjate en la u: lleguen."],
+        ["Te pido que me ___ la verdad.", "decir", "digas", ["dices","dirás","dijiste"], "Después de «te pido que» va subjuntivo."],
+        ["Ojalá ustedes ___ a la reunión.", "venir", "vengan", ["vienen","vendrán","vinieron"], "«Ojalá» pide subjuntivo: vengan."],
+        ["Señor, ___ el documento aquí.", "firmar", "firme", ["firmas","firmes","firman"], "A usted le corresponde «firme»."],
+        ["Muchachos, no ___ en el salón.", "correr", "corran", ["corren","corra","corramos"], "En las órdenes negativas se usa el subjuntivo: «no corran»."],
+        ["Espero que mi equipo ___ el partido.", "ganar", "gane", ["gana","ganará","ganó"], "«Espero que» pide subjuntivo."]
+      ];
+      const [frase, inf, buena, malas, porque] = alAzar(banco);
+      return { etiqueta:"Completa", muestra:frase.replace("___", '<span class="hueco"></span>') + ` (${inf})`, html:true,
+        texto:"¿Qué forma va en el espacio?", resp:[buena], tipo:"opciones", ops:opciones(buena, malas),
+        clave:porque,
+        pasos:[porque, `La forma correcta es «${buena}».`, `La oración queda: ${frase.replace("___", buena)}`] };
+    }
+  },
+
+  { /* 10 */ titulo:"Corrige la frase", resumen:"Los errores más comunes", familia:"avanz",
+    concepto:`<p>Este es el nivel de cierre: ahora hay que reconocer, dentro de una oración completa, si el verbo está bien conjugado.</p><p>Los errores más frecuentes son agregarle una <b>s</b> de más al pasado de tú (<i>dijistes</i>), usar <b>haiga</b> en vez de <i>haya</i>, decir <b>hubieron</b> cuando va <i>hubo</i>, y formar mal los participios (<i>ha escribido</i>).</p>`,
+    ejemplo:`<p>¿Cuál está bien escrita?</p><p>"Ayer tú dijistes la verdad." ✗<br>"Ayer tú dijiste la verdad." ✓</p><p>En el pasado, la forma de tú <b>nunca</b> termina en s.</p>`,
+    gen() {
+      const banco = [
+        ["Ayer tú dijiste la verdad.", ["Ayer tú dijistes la verdad.","Ayer tú decistes la verdad.","Ayer tú dijites la verdad."], "En el pretérito, la forma de tú nunca termina en s: dijiste."],
+        ["¿Tú viniste ayer a la reunión?", ["¿Tú vinistes ayer a la reunión?","¿Tú veniste ayer a la reunión?","¿Tú vinites ayer a la reunión?"], "Es «viniste», sin s al final."],
+        ["Ojalá haya tiempo para todo.", ["Ojalá haiga tiempo para todo.","Ojalá haiga tiempo pa todo.","Ojalá habiga tiempo para todo."], "«Haiga» no existe: la forma correcta es «haya»."],
+        ["Hubo muchos invitados en la fiesta.", ["Hubieron muchos invitados en la fiesta.","Habían muchos invitados en la fiesta.","Hubieran muchos invitados en la fiesta."], "Con ese valor, «haber» no tiene plural: se dice «hubo muchos»."],
+        ["Yo anduve todo el día en la calle.", ["Yo andé todo el día en la calle.","Yo andí todo el día en la calle.","Yo andube todo el día en la calle."], "Andar es irregular: «anduve», no «andé»."],
+        ["Ella condujo el carro hasta Montería.", ["Ella conducío el carro hasta Montería.","Ella condució el carro hasta Montería.","Ella conduzco el carro hasta Montería."], "Conducir es irregular: «condujo»."],
+        ["El libro no cupo en la maleta.", ["El libro no cabió en la maleta.","El libro no cupió en la maleta.","El libro no cabó en la maleta."], "Caber es irregular: «cupo», no «cabió»."],
+        ["Ya he escrito la carta.", ["Ya he escribido la carta.","Ya he escribí la carta.","Ya ha escrito la carta yo."], "El participio de escribir es «escrito»."],
+        ["Hemos puesto la mesa.", ["Hemos ponido la mesa.","Hemos ponido la mesa ya.","Habemos puesto la mesa."], "El participio de poner es «puesto»."],
+        ["Mis primos ya han vuelto del paseo.", ["Mis primos ya han volvido del paseo.","Mis primos ya han vuelvido del paseo.","Mis primos ya ha vuelto del paseo."], "El participio de volver es «vuelto»."],
+        ["Él ha hecho toda la tarea.", ["Él ha hacido toda la tarea.","Él ha hechado toda la tarea.","Él han hecho toda la tarea."], "El participio de hacer es «hecho»."],
+        ["Siéntense, por favor.", ["Siéntensen, por favor.","Sientensen, por favor.","Siéntesen, por favor."], "El imperativo de ustedes es «siéntense», sin n al final."],
+        ["A ver si mañana llueve.", ["Haber si mañana llueve.","A ber si mañana llueve.","Aber si mañana llueve."], "«A ver» se escribe separado; «haber» es el verbo."],
+        ["Nosotros trajimos los cuadernos.", ["Nosotros trajiemos los cuadernos.","Nosotros traimos los cuadernos.","Nosotros trajeron los cuadernos."], "Traer es irregular: «trajimos»."],
+        ["Tú hiciste un buen trabajo.", ["Tú hicistes un buen trabajo.","Tú haciste un buen trabajo.","Tú hizo un buen trabajo."], "Es «hiciste», sin s al final."],
+        ["Tú trajiste el cuaderno.", ["Tú trajistes el cuaderno.","Tú traíste el cuaderno.","Tú trajo el cuaderno."], "Es «trajiste», sin s al final."],
+        ["Ayer hubo clase de inglés.", ["Ayer hubieron clase de inglés.","Ayer habían clase de inglés.","Ayer hubieran clase de inglés."], "Con ese valor, «haber» no tiene plural: «hubo clase»."],
+        ["Ella ha visto esa película.", ["Ella ha veído esa película.","Ella ha vido esa película.","Ella han visto esa película."], "El participio de ver es «visto»."],
+        ["Nosotros estuvimos en la finca el domingo.", ["Nosotros estuvemos en la finca el domingo.","Nosotros estubimos en la finca el domingo.","Nosotros estuvieron en la finca el domingo."], "Estar es irregular: «estuvimos», con v."],
+        ["Ustedes supieron la noticia.", ["Ustedes sabieron la noticia.","Ustedes supiron la noticia.","Ustedes supo la noticia."], "Saber es irregular: «supieron»."],
+        ["Él no quiso ir al paseo.", ["Él no quisió ir al paseo.","Él no querió ir al paseo.","Él no quisieron ir al paseo."], "Querer es irregular: «quiso»."]
+      ];
+      const [buena, malas, porque] = alAzar(banco);
+      return { texto:"¿Cuál de estas oraciones está bien escrita?", resp:[buena], tipo:"opciones",
+        ops:opciones(buena, malas), clave:porque,
+        pasos:[porque, `La oración correcta es: ${buena}`] };
+    }
+  }
+];
+
+const COLOR = { base:"var(--base)", tiempo:"var(--tiempo)", irreg:"var(--irreg)", avanz:"var(--avanz)" };
+const PREGUNTAS = 5, META = 4;   // cinco preguntas por nivel; cuatro aciertos para pasar
+
+let reg = null, S = null;
+
+const PANTALLAS = ["p-inicio","p-mapa","p-explica","p-juego","p-fin","p-docente"];
+function ver(id) { PANTALLAS.forEach(p => { $(p).hidden = (p !== id); }); window.scrollTo(0, 0); }
+function pintaAcento(f) { document.documentElement.style.setProperty("--acento", COLOR[f] || "var(--base)"); }
+
+function buscaRegistro(nombre, grado) {
+  const llave = (nombre + "|" + grado).toLowerCase().trim();
+  return bd.registros.find(r => (r.nombre + "|" + r.grado).toLowerCase().trim() === llave) || null;
+}
+function nuevoRegistro(nombre, grado) {
+  const r = { nombre, grado, nivelMax:1, puntaje:0, aciertos:0, errores:0, segundos:0, fecha:hoy() };
+  bd.registros.push(r); guardar(); return r;
+}
+function hoy() {
+  const d = new Date();
+  return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
+}
+function reloj(seg) { return `${Math.floor(seg/60)} min ${String(seg%60).padStart(2,"0")} s`; }
+
+function pintaMapa() {
+  $("m-regla").textContent = `Cada nivel se apoya en el anterior. Para avanzar necesitas ${META} aciertos de ${PREGUNTAS}. Puedes repetir los niveles que ya ganaste.`;
+  $("saludo").textContent = "Hola, " + reg.nombre.split(" ")[0];
+  $("m-puntaje").textContent = reg.puntaje;
+  $("b-repaso").hidden = reg.nivelMax < 2;
+  pintaAcento(NIVELES[Math.min(reg.nivelMax, NIVELES.length) - 1].familia);
+  const cont = $("lista-niveles"); cont.innerHTML = "";
+  NIVELES.forEach((n, i) => {
+    const num = i + 1, abierto = num <= reg.nivelMax, hecho = num < reg.nivelMax;
+    const b = document.createElement("button");
+    b.className = "nivel" + (hecho ? " hecho" : "");
+    b.style.setProperty("--c", COLOR[n.familia]);
+    b.disabled = !abierto;
+    b.innerHTML = `<span class="num">${num}</span><span class="txt"><b>${n.titulo}</b><span>${n.resumen}</span></span><span class="est">${hecho ? "Superado" : abierto ? "Jugar" : "Cerrado"}</span>`;
+    b.addEventListener("click", () => explicar(num));
+    cont.appendChild(b);
+  });
+}
+
+let nivelPendiente = 1;
+function explicar(num) {
+  const n = NIVELES[num - 1];
+  nivelPendiente = num; pintaAcento(n.familia);
+  $("e-chip").textContent = "Nivel " + num;
+  $("e-titulo").textContent = n.titulo;
+  $("e-concepto").innerHTML = n.concepto;
+  $("e-ejemplo").innerHTML = n.ejemplo;
+  ver("p-explica");
+}
+
+function empezarNivel(num) {
+  pintaAcento(NIVELES[num - 1].familia);
+  S = { nivel:num, i:0, aciertos:0, errores:0, puntos:0, racha:0, refuerzo:0, q:null, t0:Date.now(), vistas:new Set(), total:PREGUNTAS, repaso:false };
+  $("j-chip").textContent = "Nivel " + num;
+  $("b-abandonar").textContent = "Salir del nivel";
+  ver("p-juego"); siguiente();
+}
+/* Repaso: 10 preguntas mezcladas de todos los niveles ya superados.
+   No desbloquea nada ni se puede perder; sirve para practicar con los temas
+   revueltos, que es como se afianza lo aprendido. */
+function empezarRepaso() {
+  $("b-abandonar").textContent = "Salir del repaso";
+  S = { repaso:true, hasta: Math.max(1, reg.nivelMax - 1), total: 10, nivel: 1,
+        i:0, aciertos:0, errores:0, puntos:0, racha:0, refuerzo:0, q:null,
+        t0: Date.now(), vistas: new Set() };
+  ver("p-juego"); siguiente();
+}
+
+function siguiente() {
+  S.refuerzo = 0; S.i++;
+  if (S.repaso && S.i <= S.total) {
+    // En el repaso, cada pregunta sale de un nivel distinto de los ya superados.
+    S.nivel = az(1, S.hasta);
+    pintaAcento(NIVELES[S.nivel - 1].familia);
+    $("j-chip").textContent = NIVELES[S.nivel - 1].titulo;
+  }
+  if (S.i > S.total) return terminarNivel();
+  nuevaPregunta(false);
+}
+
+function nuevaPregunta(esRefuerzo) {
+  const nivel = NIVELES[S.nivel - 1];
+  // Genero hasta dar con una pregunta que no haya salido ya en este nivel.
+  let q, firma, intentos = 0;
+  do {
+    q = nivel.gen();
+    firma = (q.texto || "") + "|" + (q.muestra || "") + "|" + q.resp.join(",");
+    intentos++;
+  } while (S.vistas.has(firma) && intentos < 60);
+  S.vistas.add(firma);
+  S.q = q;
+
+  $("j-total").textContent = S.total;
+  $("j-num").textContent = Math.min(S.i, S.total);
+  $("j-puntos").textContent = S.puntos;
+  $("j-barra").style.width = ((S.i - 1) / S.total * 100) + "%";
+  const chipRacha = $("j-racha");
+  chipRacha.hidden = S.racha < 3;
+  if (S.racha >= 3) chipRacha.innerHTML = `Racha <b>${S.racha}</b>`;
+
+  $("j-aviso").innerHTML = esRefuerzo ? `<p class="silencio">Intenta con uno parecido para afianzarlo.</p>` : "";
+  $("b-seguir").hidden = true;
+  $("j-tabla").hidden = true;
+  $("b-ayuda").hidden = !nivel.ayuda;
+  $("b-ayuda").textContent = "Ver los modelos de conjugación";
+
+  const mu = $("j-muestra");
+  if (q.muestra) {
+    mu.innerHTML = `<span class="etiq">${q.etiqueta || ""}</span><div class="frase">${q.muestra}</div>`;
+    mu.hidden = false;
+  } else mu.hidden = true;
+
+  $("j-operacion").textContent = q.texto;
+
+  if (q.tipo === "opciones") {
+    $("j-escribir").hidden = true;
+    const cont = $("j-opciones"); cont.hidden = false; cont.innerHTML = "";
+    const largo = q.ops.some(o => String(o).length > 14);
+    cont.style.gridTemplateColumns = largo ? "1fr" : "repeat(2,1fr)";
+    q.ops.forEach(v => {
+      const b = document.createElement("button");
+      b.textContent = v;
+      b.style.fontSize = largo ? ".97rem" : "1.2rem";
+      b.addEventListener("click", () => responder([v], b));
+      cont.appendChild(b);
+    });
+  } else {
+    $("j-opciones").hidden = true;
+    $("j-escribir").hidden = false;
+    $("j-casillas").innerHTML = `<div class="casilla"><label for="c0">Tu respuesta</label>
+      <input id="c0" type="text" inputmode="text" autocomplete="off" autocapitalize="none"
+        spellcheck="false" maxlength="22" style="width:230px; max-width:72vw; font-size:1.45rem" class="activa"></div>`;
+    const tec = $("j-teclado"); tec.innerHTML = "";
+    const listo = document.createElement("button");
+    listo.textContent = "Listo"; listo.className = "b-principal";
+    listo.addEventListener("click", enviarEscrito);
+    tec.appendChild(listo);
+    const i = $("c0");
+    i.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); enviarEscrito(); } });
+    i.focus({ preventScroll:true });
+  }
+}
+
+function enviarEscrito() {
+  const i = $("c0");
+  if (!i || i.value.trim() === "") { if (i) i.focus({ preventScroll:true }); return; }
+  responder([i.value.trim()], null);
+}
+
+/* Comparo sin distinguir mayúsculas, pero SÍ las tildes:
+   en conjugación, la tilde es parte de la respuesta. */
+const norm = (x) => String(x).trim().toLowerCase().replace(/\s+/g, " ");
+
+function responder(valores, boton) {
+  const q = S.q;
+  const bien = q.resp.every((v, k) => norm(valores[k]) === norm(v));
+  const esRefuerzo = S.refuerzo > 0;
+
+  document.querySelectorAll("#j-opciones button").forEach(b => b.disabled = true);
+  const inp = $("c0"); if (inp) inp.disabled = true;
+  document.querySelectorAll("#j-teclado button").forEach(b => b.disabled = true);
+
+  if (q.tipo === "opciones") {
+    document.querySelectorAll("#j-opciones button").forEach(b => {
+      if (norm(b.textContent) === norm(q.resp[0])) b.classList.add("buena");
+    });
+    if (!bien && boton) boton.classList.add("mala");
+  }
+
+  if (bien) {
+    sonBien();
+    if (!esRefuerzo) {
+      S.aciertos++; S.racha++;
+      const suma = 10 + (S.racha >= 3 ? 5 : 0);
+      S.puntos += suma;
+      $("j-aviso").innerHTML = `<div class="aviso bien"><h3>¡Correcto! +${suma}${S.racha >= 3 ? " (racha de " + S.racha + ")" : ""}</h3><p>${q.clave}</p></div>`;
+    } else {
+      S.puntos += 2;
+      $("j-aviso").innerHTML = `<div class="aviso bien"><h3>¡Eso es! +2</h3><p>${q.clave} Ahora sigamos.</p></div>`;
+    }
+    $("j-puntos").textContent = S.puntos;
+    $("b-seguir").textContent = "Continuar";
+    $("b-seguir").onclick = siguiente;
+    $("b-seguir").hidden = false;
+  } else {
+    sonMal();
+    S.racha = 0;
+    if (!esRefuerzo) S.errores++;   // el error no resta puntos: ya cuesta la racha y el ejercicio de refuerzo
+    $("j-aviso").innerHTML = `<div class="aviso mal"><h3>Casi. La respuesta es: ${q.resp[0]}</h3>
+      <p>Mira por qué:</p><ol class="pasos">${q.pasos.map(p => `<li>${p}</li>`).join("")}</ol></div>`;
+    S.refuerzo++;
+    if (S.refuerzo <= 2 && !S.repaso) { $("b-seguir").textContent = "Intentar uno parecido"; $("b-seguir").onclick = () => nuevaPregunta(true); }
+    else { $("b-seguir").textContent = "Continuar"; $("b-seguir").onclick = siguiente; }
+    $("b-seguir").hidden = false;
+  }
+  $("j-barra").style.width = (S.i / S.total * 100) + "%";
+}
+
+function terminarNivel() {
+  const seg = Math.round((Date.now() - S.t0) / 1000);
+  if (S.repaso) {
+    reg.puntaje += S.puntos; reg.aciertos += S.aciertos; reg.errores += S.errores;
+    reg.segundos += seg; reg.fecha = hoy(); guardar();
+    $("f-titulo").textContent = "Repaso terminado";
+    $("f-aciertos").textContent = S.aciertos + " / " + S.total;
+    $("f-texto").textContent = "Preguntas mezcladas de los niveles que ya superaste. Aquí no se gana ni se pierde nivel: es solo para practicar.";
+    $("f-ok").textContent = S.aciertos; $("f-err").textContent = S.errores;
+    $("f-pts").textContent = S.puntos; $("f-tiempo").textContent = reloj(seg);
+    $("b-repetir").textContent = "Otro repaso";
+    $("b-repetir").onclick = empezarRepaso;
+    $("b-continuar").textContent = "Ir al mapa de niveles";
+    $("b-continuar").onclick = () => { pintaMapa(); ver("p-mapa"); };
+    return ver("p-fin");
+  }
+  const paso = S.aciertos >= META;
+  reg.puntaje += S.puntos; reg.aciertos += S.aciertos; reg.errores += S.errores;
+  reg.segundos += seg; reg.fecha = hoy();
+  if (paso && S.nivel === reg.nivelMax && reg.nivelMax < NIVELES.length) reg.nivelMax++;
+  guardar();
+  if (paso) sonNivel();
+  $("f-titulo").textContent = paso ? "¡Nivel superado!" : "Casi lo logras";
+  $("f-aciertos").textContent = S.aciertos + " / " + S.total;
+  $("f-texto").textContent = paso
+    ? (S.nivel < NIVELES.length ? "Ya puedes pasar al nivel " + (S.nivel + 1) + "." : "¡Terminaste los diez niveles! Puedes repetir el que quieras para mejorar tu puntaje.")
+    : "Necesitas " + META + " aciertos de " + PREGUNTAS + " para avanzar. Repasa la explicación y vuelve a intentarlo: los ejercicios serán distintos.";
+  $("f-ok").textContent = S.aciertos; $("f-err").textContent = S.errores;
+  $("f-pts").textContent = S.puntos; $("f-tiempo").textContent = reloj(seg);
+  $("b-continuar").textContent = paso ? "Ir al mapa de niveles" : "Ver la explicación otra vez";
+  $("b-continuar").onclick = () => { if (paso) { pintaMapa(); ver("p-mapa"); } else explicar(S.nivel); };
+  $("b-repetir").textContent = "Repetir nivel";
+  $("b-repetir").onclick = () => empezarNivel(S.nivel);
+  ver("p-fin");
+}
+
+/* ---------- tabla de modelos ---------- */
+function pintaTabla() {
+  const modelos = ["cantar", "comer", "vivir"];
+  const tiempos = [["presente","Presente"],["pasado","Pasado"],["imperfecto","Imperfecto"],["futuro","Futuro"]];
+  let html = "";
+  modelos.forEach(inf => {
+    html += `<table><caption>${inf} (${grupo(inf) === "ar" ? "primera" : grupo(inf) === "er" ? "segunda" : "tercera"} conjugación)</caption>
+      <tr><th></th>${tiempos.map(t => `<th>${t[1]}</th>`).join("")}</tr>` +
+      PERSONAS.map((x, k) => `<tr><td>${MUESTRA_PERSONA[k]}</td>${
+        tiempos.map(t => `<td>${forma(inf, t[0], k)}</td>`).join("")}</tr>`).join("") + `</table>`;
+  });
+  $("j-tabla").innerHTML = html;
+}
+
+/* ---------- panel del docente ---------- */
+function pintaDocente() {
+  const cuerpo = $("d-tabla"); cuerpo.innerHTML = "";
+  const orden = [...bd.registros].sort((a, b) => b.puntaje - a.puntaje);
+  if (!orden.length) cuerpo.innerHTML = `<tr><td colspan="5" class="silencio">Todavía no hay resultados en este dispositivo.</td></tr>`;
+  else orden.forEach(r => {
+    const f = document.createElement("tr");
+    f.innerHTML = `<td>${r.nombre}</td><td>${r.grado}</td><td class="n">${r.nivelMax}</td><td class="n">${r.puntaje}</td><td class="n">${r.aciertos}</td>`;
+    cuerpo.appendChild(f);
+  });
+  $("d-texto").hidden = true; $("d-aviso").hidden = true; $("d-confirma").hidden = true;
+}
+function textoResumen() {
+  if (!reg) return planilla();
+  return `Conjugatón — resultados de ${reg.nombre} (${reg.grado})
+Nivel alcanzado: ${reg.nivelMax} de ${NIVELES.length}
+Puntaje acumulado: ${reg.puntaje}
+Aciertos: ${reg.aciertos} · Errores: ${reg.errores}
+Tiempo jugado: ${reloj(reg.segundos)}
+Última sesión: ${reg.fecha}`;
+}
+function planilla() {
+  const filas = [["Nombre","Grado","Nivel alcanzado","Puntaje","Aciertos","Errores","Minutos","Fecha"]];
+  bd.registros.forEach(r => filas.push([r.nombre, r.grado, r.nivelMax, r.puntaje, r.aciertos, r.errores, Math.round(r.segundos/60), r.fecha]));
+  return filas.map(f => f.map(c => `"${String(c).replace(/"/g,'""')}"`).join(";")).join("\n");
+}
+function copiar(texto, etiqueta) {
+  const caja = $("d-texto"), aviso = $("d-aviso");
+  caja.value = texto; caja.hidden = false; aviso.hidden = false;
+  const listo = () => { aviso.textContent = etiqueta + " copiado. Ya puedes pegarlo donde lo necesites."; };
+  const aMano = () => { aviso.textContent = "Selecciona el texto de abajo y cópialo a mano."; caja.focus(); caja.select(); };
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(texto).then(listo).catch(aMano);
+    else aMano();
+  } catch (e) { aMano(); }
+}
+function bajarCSV() {
+  const aviso = $("d-aviso"); aviso.hidden = false;
+  try {
+    const url = URL.createObjectURL(new Blob(["﻿" + planilla()], { type:"text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = "conjugaton-resultados.csv";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    aviso.textContent = "Si la descarga no empezó, usa el botón de copiar: algunos visores bloquean las descargas.";
+  } catch (e) {
+    aviso.textContent = "Este visor no permite descargar. Usa el botón de copiar la planilla.";
+  }
+}
+
+/* ---------- eventos ---------- */
+$("b-entrar").addEventListener("click", () => {
+  const nombre = $("in-nombre").value.trim(), grado = $("in-grado").value.trim();
+  if (!nombre || !grado) { $("aviso-inicio").hidden = false; return; }
+  $("aviso-inicio").hidden = true;
+  reg = buscaRegistro(nombre, grado) || nuevoRegistro(nombre, grado);
+  pintaMapa(); ver("p-mapa");
+});
+$("in-grado").addEventListener("keydown", e => { if (e.key === "Enter") $("b-entrar").click(); });
+$("b-sonido").addEventListener("click", () => {
+  bd.mudo = !bd.mudo; guardar();
+  $("b-sonido").textContent = "Sonido: " + (bd.mudo ? "apagado" : "activado");
+  if (!bd.mudo) sonBien();
+});
+$("b-ayuda").addEventListener("click", () => {
+  const t = $("j-tabla"); t.hidden = !t.hidden;
+  $("b-ayuda").textContent = t.hidden ? "Ver los modelos de conjugación" : "Ocultar los modelos";
+});
+$("b-volver-mapa").addEventListener("click", () => { pintaMapa(); ver("p-mapa"); });
+$("b-jugar").addEventListener("click", () => empezarNivel(nivelPendiente));
+$("b-abandonar").addEventListener("click", () => { pintaMapa(); ver("p-mapa"); });
+$("b-salir").addEventListener("click", () => { reg = null; ver("p-inicio"); });
+$("b-ver-docente").addEventListener("click", () => { pintaDocente(); ver("p-docente"); });
+$("b-repaso").addEventListener("click", empezarRepaso);
+$("b-docente2").addEventListener("click", () => { pintaDocente(); ver("p-docente"); });
+$("b-cerrar-docente").addEventListener("click", () => { if (reg) { pintaMapa(); ver("p-mapa"); } else ver("p-inicio"); });
+$("b-copiar-resumen").addEventListener("click", () => copiar(textoResumen(), "Resumen"));
+$("b-copiar-csv").addEventListener("click", () => copiar(planilla(), "Planilla"));
+$("b-bajar-csv").addEventListener("click", bajarCSV);
+$("b-reiniciar").addEventListener("click", () => { $("d-confirma").hidden = false; });
+$("b-no").addEventListener("click", () => { $("d-confirma").hidden = true; });
+$("b-si").addEventListener("click", () => { bd.registros = []; guardar(); reg = null; pintaDocente(); ver("p-inicio"); });
+
+/* ---------- arranque ---------- */
+// El enlace de regreso aparece solo si el jugador llegó desde otra página del mismo
+// sitio, por ejemplo la portada. Si abrió el juego directamente, no se muestra.
+try {
+  const vengo = document.referrer;
+  if (vengo && new URL(vengo).origin === location.origin
+      && new URL(vengo).pathname !== location.pathname) {
+    const v = $("b-volver-sitio");
+    v.hidden = false;
+    v.addEventListener("click", (e) => { e.preventDefault(); history.back(); });
+  }
+} catch (e) { /* sin referente: el enlace queda oculto */ }
+
+cargar();
+pintaTabla();
+$("b-sonido").textContent = "Sonido: " + (bd.mudo ? "apagado" : "activado");
+if (bd.registros.length) {
+  const u = bd.registros[bd.registros.length - 1];
+  $("in-nombre").value = u.nombre; $("in-grado").value = u.grado;
+}
+ver("p-inicio");
+</script>
+</body>
+</html>
